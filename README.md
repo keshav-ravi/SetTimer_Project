@@ -16,7 +16,9 @@ The product's wedge depends on the rest timer alerting reliably during a real wo
 
 1. **The in-page timer alone is not enough on iPhone.** iOS freezes a home-screen web app's JavaScript when the phone locks or another app opens. The page cannot fire the alert at 90 seconds, so it only appeared once the user came back to the app.
 2. **A server-sent Web Push fixes it.** Something outside the phone has to send the alert. After the change below, an informal test on an iPhone (installed home-screen app, 20-second test timer) delivered a notification in all three cases: app in foreground, another app open, and screen locked.
-3. **Not yet done:** the official test matrix with the real 90-second timer (5 runs per cell), and Android testing (deferred, no device available).
+3. **Official 90-second results (iPhone installed app):** every cell passed. Push arrived 0.7 to 2.2 seconds after the end: foreground 5 of 5, home screen 5 of 5, another app open 5 of 5, **screen locked 10 of 10** within the 3-second bar. Edge cases (cellular, reset, stop, tapping the notification, permission denied) behaved correctly.
+4. **iPhone Safari tab does not work:** notifications cannot be enabled outside the installed app, so on iPhone the app must be added to the home screen. The PRD recommends moving PWA install from P1 to P0 (pending owner approval).
+5. **Not yet done:** Android testing (deferred, no device available), and some edge cases (Low Power Mode, a force-quit app left closed past the end time, back-to-back sets, reload mid-run). See PRD Section 12.
 
 ## How it works
 
@@ -93,17 +95,17 @@ Copy `.env.example` to `.env.local` for local development, and add the same name
 3. Every push to `main` redeploys automatically. After changing variables, redeploy manually.
 4. On an iPhone, open the production URL in Safari, Share, **Add to Home Screen**, open from the icon, then tap **Enable notifications**. iOS only allows push in the installed app (iOS 16.4+).
 
-## Running the official test matrix
+## Running the official test matrix (results below)
 
 Use the real 90-second timer. For each cell run 5 times and record whether the alert fired, the delay versus the 90s mark, which channels worked, and any duplicates. Use **Copy log** on the page to export the results (the log includes how late the page alert and the push were).
 
 | Device and mode | Screen on, app foreground | Screen on, other app open | Screen locked |
 |---|---|---|---|
-| iPhone, Safari tab | | | |
-| iPhone, installed PWA | | | |
-| Android (deferred) | | | |
+| iPhone, Safari tab | Not supported (cannot enable notifications) | Not supported | Not supported |
+| iPhone, installed PWA | 5 of 5 within 3s | 5 of 5 within 3s | 10 of 10 within 3s |
+| Android (deferred) | not tested | not tested | not tested |
 
-Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 of 10 locked-screen runs.
+Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 of 10 locked-screen runs. The table above shows the results so far (details in PRD Section 12).
 
 ## Known limitations
 

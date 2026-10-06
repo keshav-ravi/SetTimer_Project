@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** Draft v6 | **Last updated:** Oct 6, 2026
+**Author:** [Your name] | **Status:** Draft v8 | **Last updated:** Oct 6, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 ---
@@ -167,18 +167,42 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 **Round 2 results (informal, Oct 6, 2026):** iPhone installed PWA, with the server-scheduled push and a temporary 20-second test timer. A notification was delivered in all three cases: app in foreground, another app open, and screen locked. The first version showed duplicate notifications (the page and the push both alerted); this was fixed by letting the push show the notification when one is scheduled, and a later retest of all three cases passed with no duplicates. Along the way, debugging found and fixed a signature check that could reject real QStash requests.
 
-**Round 3: official timer (90s), iPhone installed PWA, first run per cell (Oct 6, 2026):**
+**Round 3: official timer (90s), iPhone (Oct 6, 2026).** Delay is measured from the push arrival time recorded by the service worker. All runs below were on Wi-Fi unless noted.
 
-| Screen state | Alert (push) arrived | Result |
-|---|---|---|
-| Screen on, app foreground | 1.1s after end | Pass |
-| Screen on, home screen (app backgrounded) | 1.1s after end | Pass |
-| Screen on, other app open | 1.8s after end | Pass |
-| Screen locked | 1.1s after end | Pass |
+**Installed PWA matrix**
 
-All four runs were within the 3-second pass bar. Delays were measured from the push arrival time recorded by the service worker.
+| Screen state | Runs | Push delay after end | Within 3s | Duplicates |
+|---|---|---|---|---|
+| Screen on, app foreground | 5 | 0.7s to 2.1s | 5 of 5 | none |
+| Screen on, home screen (app backgrounded) | 5 | 0.8s to 2.0s | 5 of 5 | none |
+| Screen on, other app open | 5 | 1.0s to 2.0s | 5 of 5 | none |
+| **Screen locked (side button)** | **10** | **0.7s to 2.2s (mean about 1.0s)** | **10 of 10** | none |
 
-**Status:** Preliminary. Testing is paused for now (owner decision, Oct 6, 2026). This is one run per cell. The matrix calls for 5 runs per cell, and the locked-screen criterion needs at least 9 of 10 runs within 3 seconds, so the decision-rule outcome is still open. Still to record: which channels (sound, notification, vibration) were perceived in each run, and the Safari-tab row. Android remains deferred.
+**Safari tab (not installed):** Failed as expected. The user could not enable notifications, and tapping Log set produced no notification. iOS only allows web push for an installed home-screen app.
+
+**Locked-screen conditions tested:** locked immediately after Log set (4 runs), and locked with about 60s, 45s and 30s remaining (2 or 3 runs each).
+
+**Channels perceived:** a banner and the phone's haptic vibration in every installed-PWA run, including with the phone on silent. Sound was heard only when the phone was not on silent (2 runs). The web Vibration API does not exist on iOS; the haptic comes from the system with the notification.
+
+**Edge cases (iPhone installed PWA):**
+
+| Case | Result |
+|---|---|
+| Cellular instead of Wi-Fi | Pass. Push arrived 1.5s after end (banner, haptic, sound), no duplicate. |
+| Reset (Log set again while running) | Pass. Exactly one notification. |
+| Stop before the end | Pass. No notification. |
+| Tap the notification | Pass. Opens the app, state idle, log line present. |
+| App force-quit (swiped away) | Partial. On reopening, the timer was still running and finished, and the push arrived. The run does not show whether a push is delivered while the app is fully quit, because the app was reopened before the end. To retest. |
+| Notification permission denied in iOS Settings | Behaves acceptably. No banner. Sound still played with the app in the foreground. The page shows "Notifications: denied" but the Push line still says "push scheduled", which is misleading; the server schedules a push the phone then cannot show. |
+
+**Not yet tested:** Low Power Mode, charging state, a long idle period before a run, back-to-back sets, several sets while locked, reload mid-run followed by Stop (known limitation: a stale push may still arrive), and a force-quit app left closed until after the end time. Android is deferred.
+
+**Pass criteria check (locked screen, iPhone installed PWA):**
+- Alert within 3 seconds in at least 9 of 10 runs: **met (10 of 10).**
+- At least one channel perceptible with the phone on a bench or in a pocket: **met** (haptic and banner, even on silent).
+- Returns to idle and does not restart: **met** (unit tests, a browser check, and the tap-notification test showing state idle).
+
+**Decision-rule outcome (iPhone only):** The installed PWA passes and the Safari tab fails, so the row "Passes only as installed PWA" applies. That row says to move the PWA install flow (Req 10) from P1 to P0 and add an install prompt to the core flow. **Recommended, not yet applied:** the change moves a P1 item into P0 and needs owner approval. Android has not been tested, so the "both platforms" rows cannot be evaluated yet.
 
 **Deliverable:** A completed test matrix and a short write-up (what was tested, what happened, the decision taken). This feeds the learnings doc.
 
@@ -223,12 +247,14 @@ All four runs were within the 3-second pass bar. Delays were measured from the p
 
 - Is 90s acceptable for P0, and how soon do users ask for adjustment?
 - Does the log-triggered timer reduce app-switching, or do users still open the Clock app out of habit?
-- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)* **Interim (Oct 6, 2026):** the in-page alert is not good enough on a locked iPhone. Server-sent Web Push delivered notifications on a locked iPhone in informal testing (20-second timer); a first official 90-second run passed in all four cases (push 1.1 to 1.8s after the end); more runs are needed to meet the 9-of-10 locked-screen bar.
+- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)* **Interim (Oct 6, 2026):** the in-page alert is not good enough on a locked iPhone. Server-sent Web Push delivered notifications on a locked iPhone in informal testing (20-second timer); the official 90-second runs on the installed iPhone app met the locked-screen bar (10 of 10 within 3s, 0.7 to 2.2s), and the Safari tab failed as expected, so the installed PWA is required on iPhone. Android and a few edge cases are still untested.
 - If server-sent push is required, is the added infrastructure acceptable for P0, and is QStash the right long-term scheduler?
 - Should the exercise preset list be organized by muscle group or alphabetical?
 
 ## 17. Change Log
 
+- **v8:** Recorded the remaining iPhone results. Other app open: 5 of 5 within 3 seconds (1.0 to 2.0s). Safari tab: failed as expected (notifications cannot be enabled outside the installed app). Edge cases: cellular, reset, stop, tap notification and permission denied behave correctly; force-quit is a partial result. The decision-rule row "Passes only as installed PWA" now applies on iPhone, which would move Req 10 (PWA install) from P1 to P0. That change is recommended but not applied; it needs owner approval. No requirements changed.
+- **v7:** Recorded 90-second iPhone results (installed PWA): foreground 5 of 5, home screen 5 of 5, locked screen 10 of 10 within 3 seconds (0.7 to 2.2s), other app open 1 of 1, with no duplicate notifications. The locked-screen pass criterion is met. The Safari-tab row, edge cases and Android remain untested. No requirements changed; a possible move of PWA install (Req 10) to P0 is pending the Safari-tab result and owner approval.
 - **v6:** Recorded the first official 90-second run on iPhone (installed PWA): foreground, home screen, other app open, and locked screen all passed, with the push arriving 1.1 to 1.8 seconds after the end. These are single runs, so the formal pass criteria (5 runs per cell; 9 of 10 locked) are not yet met and the decision is still open.
 - **v5:** Recorded informal Round 2 results (iPhone installed PWA, 20-second test timer): server-scheduled push delivered notifications when the app was in the foreground, in the background, and locked, after fixing duplicate notifications. The timer was restored to 90 seconds for the official matrix, which is still to be run. No requirements changed.
 - **v4:** Recorded Round 1 spike results (iPhone installed PWA): alerts work in the foreground but fail when the phone is locked or another app is open, because iOS freezes the page. Amended the spike scope to include a minimal scheduled Web Push (Upstash QStash + `web-push`). Deferred Android testing. Added a note to Req 5b, a technical consideration for push, a risk row, and an interim answer to the iOS open question. No P0 requirements were removed or reprioritized.
