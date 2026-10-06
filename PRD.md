@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** Draft v5 | **Last updated:** Oct 6, 2026
+**Author:** [Your name] | **Status:** Draft v6 | **Last updated:** Oct 6, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 ---
@@ -167,7 +167,18 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 **Round 2 results (informal, Oct 6, 2026):** iPhone installed PWA, with the server-scheduled push and a temporary 20-second test timer. A notification was delivered in all three cases: app in foreground, another app open, and screen locked. The first version showed duplicate notifications (the page and the push both alerted); this was fixed by letting the push show the notification when one is scheduled, and a later retest of all three cases passed with no duplicates. Along the way, debugging found and fixed a signature check that could reject real QStash requests.
 
-**Status:** These Round 2 runs were informal and used a shortened timer, so they do not count toward the formal matrix. The official matrix (real 90-second timer, 5 runs per cell, recording the delay for each run) is not yet run, so the decision-rule outcome is still open. Android remains deferred.
+**Round 3: official timer (90s), iPhone installed PWA, first run per cell (Oct 6, 2026):**
+
+| Screen state | Alert (push) arrived | Result |
+|---|---|---|
+| Screen on, app foreground | 1.1s after end | Pass |
+| Screen on, home screen (app backgrounded) | 1.1s after end | Pass |
+| Screen on, other app open | 1.8s after end | Pass |
+| Screen locked | 1.1s after end | Pass |
+
+All four runs were within the 3-second pass bar. Delays were measured from the push arrival time recorded by the service worker.
+
+**Status:** Preliminary. Testing is paused for now (owner decision, Oct 6, 2026). This is one run per cell. The matrix calls for 5 runs per cell, and the locked-screen criterion needs at least 9 of 10 runs within 3 seconds, so the decision-rule outcome is still open. Still to record: which channels (sound, notification, vibration) were perceived in each run, and the Safari-tab row. Android remains deferred.
 
 **Deliverable:** A completed test matrix and a short write-up (what was tested, what happened, the decision taken). This feeds the learnings doc.
 
@@ -212,12 +223,13 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 - Is 90s acceptable for P0, and how soon do users ask for adjustment?
 - Does the log-triggered timer reduce app-switching, or do users still open the Clock app out of habit?
-- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)* **Interim (Oct 6, 2026):** the in-page alert is not good enough on a locked iPhone. Server-sent Web Push delivered notifications on a locked iPhone in informal testing (20-second timer); the official 90-second matrix is still to be run.
+- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)* **Interim (Oct 6, 2026):** the in-page alert is not good enough on a locked iPhone. Server-sent Web Push delivered notifications on a locked iPhone in informal testing (20-second timer); a first official 90-second run passed in all four cases (push 1.1 to 1.8s after the end); more runs are needed to meet the 9-of-10 locked-screen bar.
 - If server-sent push is required, is the added infrastructure acceptable for P0, and is QStash the right long-term scheduler?
 - Should the exercise preset list be organized by muscle group or alphabetical?
 
 ## 17. Change Log
 
+- **v6:** Recorded the first official 90-second run on iPhone (installed PWA): foreground, home screen, other app open, and locked screen all passed, with the push arriving 1.1 to 1.8 seconds after the end. These are single runs, so the formal pass criteria (5 runs per cell; 9 of 10 locked) are not yet met and the decision is still open.
 - **v5:** Recorded informal Round 2 results (iPhone installed PWA, 20-second test timer): server-scheduled push delivered notifications when the app was in the foreground, in the background, and locked, after fixing duplicate notifications. The timer was restored to 90 seconds for the official matrix, which is still to be run. No requirements changed.
 - **v4:** Recorded Round 1 spike results (iPhone installed PWA): alerts work in the foreground but fail when the phone is locked or another app is open, because iOS freezes the page. Amended the spike scope to include a minimal scheduled Web Push (Upstash QStash + `web-push`). Deferred Android testing. Added a note to Req 5b, a technical consideration for push, a risk row, and an interim answer to the iOS open question. No P0 requirements were removed or reprioritized.
 - **v3:** Added Section 12 (Timer Feasibility Spike) with test matrix, pass criteria, time-box, and decision rules. Updated launch plan, risks, and open questions. Renumbered later sections.
