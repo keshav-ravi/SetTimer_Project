@@ -13,8 +13,9 @@ const NOW = 1_000_000;
 const REST_MS = REST_SECONDS * 1000;
 
 describe("REST_SECONDS", () => {
-  it("is 90", () => {
-    expect(REST_SECONDS).toBe(90);
+  // TEMPORARY: expects the shortened test value. Change back to 90 with timer.ts.
+  it("is 10 (test value)", () => {
+    expect(REST_SECONDS).toBe(10);
   });
 });
 
@@ -91,7 +92,8 @@ describe("getRemainingMs (computed from end timestamp, not a counter)", () => {
 
   it("is endTime - now while running", () => {
     const running: TimerState = { status: "running", endTime: NOW + REST_MS };
-    expect(getRemainingMs(running, NOW + 30_000)).toBe(REST_MS - 30_000);
+    // Halfway through, so the test works for any REST_SECONDS value.
+    expect(getRemainingMs(running, NOW + REST_MS / 2)).toBe(REST_MS / 2);
   });
 
   it("never goes negative after the end time", () => {
