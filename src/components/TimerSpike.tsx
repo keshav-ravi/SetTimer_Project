@@ -16,9 +16,18 @@ import {
   deltaSeconds,
   markAlerted,
   markEnded,
+  markPushReceived,
+  pushDeltaSeconds,
   startRun,
   type RunEntry,
 } from "@/lib/runLog";
+import {
+  cancelPush,
+  hasPushSubscription,
+  readPushReceipt,
+  schedulePush,
+  subscribeToPush,
+} from "@/lib/push/client";
 import { clearSnapshot, loadSnapshot, saveSnapshot } from "@/lib/spikeStorage";
 import {
   IDLE,
@@ -47,11 +56,16 @@ export default function TimerSpike() {
   const [wakeLockSupported, setWakeLockSupported] = useState<boolean | null>(null);
   const [notifPermission, setNotifPermission] = useState("unknown");
   const [status, setStatus] = useState("");
+  const [pushStatus, setPushStatus] = useState("checking...");
 
   // Refs always hold the latest values, so the interval callback never
   // reads a stale copy of state. State copies exist only to re-render.
   const timerRef = useRef<TimerState>(IDLE);
   const runsRef = useRef<RunEntry[]>([]);
+  // Chain of server calls (schedule / cancel push). Each step waits for the
+  // previous one, so a quick Stop can't race ahead of the schedule call.
+  // It resolves to the id of the currently scheduled push, or null.
+  const pushChainRef = useRef<Promise<string | null>>(Promise.resolve(null));
 
   // Update refs, screen state and localStorage together.
   const commit = useCallback((nextTimer: TimerState, nextRuns: RunEntry[]) => {
@@ -62,13 +76,40 @@ export default function TimerSpike() {
     saveSnapshot({ timer: nextTimer, runs: nextRuns });
   }, []);
 
+  // Records that the pushed notification arrived (matched by end time).
+  const attachReceipt = useCallback(
+    (endTime: number, receivedAt: number) => {
+      const nextRuns = runsRef.current.map((r) =>
+        r.expectedEnd === endTime ? markPushReceived(r, receivedAt) : r,
+      );
+      commit(timerRef.current, nextRuns);
+    },
+    [commit],
+  );
+
+  // After the timer ends: if the push already reached the phone (we were
+  // frozen or in the background), it already alerted the user, so just log
+  // it. Otherwise the page alerts on its own. This is the foreground path.
+  const alertOrAttach = useCallback(
+    async (endTime: number) => {
+      const receivedAt = await readPushReceipt(endTime);
+      if (receivedAt !== null) {
+        attachReceipt(endTime, receivedAt);
+      } else {
+        void fireAlert().then(setLastAlert);
+      }
+    },
+    [attachReceipt],
+  );
+
   // Runs on a 250ms interval and whenever the page becomes visible again.
   // Uses tick() so the "end time reached" rule lives in one place.
   const check = useCallback(() => {
     const t = Date.now();
     setNow(t);
-    const result = tick(timerRef.current, t);
-    if (!result.expired) return;
+    const before = timerRef.current;
+    const result = tick(before, t);
+    if (!result.expired || before.status !== "running") return;
     // The timer just ended: log when the alert really fired, go idle
     // (tick already did that), and do nothing else. No restart.
     const nextRuns = runsRef.current.map((r) =>
@@ -77,8 +118,10 @@ export default function TimerSpike() {
     commit(result.state, nextRuns);
     void releaseWakeLock();
     setWakeLockHeld(false);
-    void fireAlert().then(setLastAlert);
-  }, [commit]);
+    // This run's push is due now; nothing is left to cancel.
+    pushChainRef.current = Promise.resolve(null);
+    void alertOrAttach(before.endTime);
+  }, [commit, alertOrAttach]);
 
   // On mount: restore saved data, register the service worker, start the clock.
   useEffect(() => {
@@ -100,7 +143,29 @@ export default function TimerSpike() {
         setStatus("Service worker failed to register.");
       });
     }
+    void hasPushSubscription().then((has) =>
+      setPushStatus(has ? "subscribed" : "not subscribed"),
+    );
     const id = setInterval(check, 250);
+
+    // The service worker tells us when a push arrives while the page is alive.
+    const onWorkerMessage = (event: MessageEvent) => {
+      const data = event.data as {
+        type?: string;
+        endTime?: unknown;
+        receivedAt?: unknown;
+      } | null;
+      if (
+        data?.type === "push-received" &&
+        typeof data.endTime === "number" &&
+        typeof data.receivedAt === "number"
+      ) {
+        attachReceipt(data.endTime, data.receivedAt);
+      }
+    };
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", onWorkerMessage);
+    }
 
     // When the user returns to the page, catch up immediately (timers are
     // throttled while hidden) and re-take the Wake Lock, which the browser
@@ -116,10 +181,13 @@ export default function TimerSpike() {
     window.addEventListener("pageshow", onVisible);
     return () => {
       clearInterval(id);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", onWorkerMessage);
+      }
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pageshow", onVisible);
     };
-  }, [check]);
+  }, [check, attachReceipt]);
 
   function handleLogSet() {
     primeAudio(); // must happen inside the tap so iOS allows sound later
@@ -131,6 +199,15 @@ export default function TimerSpike() {
     const next = logSet(t);
     if (next.status === "running") {
       nextRuns = [...nextRuns, startRun(t, t, next.endTime)];
+      // Cancel any earlier scheduled push, then schedule the new one.
+      const endTime = next.endTime;
+      pushChainRef.current = pushChainRef.current.then(async (previousId) => {
+        if (previousId) await cancelPush(previousId);
+        return schedulePush(endTime);
+      });
+      void pushChainRef.current.then((id) =>
+        setPushStatus(id ? "push scheduled" : "push NOT scheduled"),
+      );
     }
     commit(next, nextRuns);
     setNow(t);
@@ -142,12 +219,23 @@ export default function TimerSpike() {
       r.outcome === "pending" ? markEnded(r, "stopped") : r,
     );
     commit(stop(), nextRuns);
+    // Cancel the scheduled push so it doesn't fire after a manual stop.
+    pushChainRef.current = pushChainRef.current.then(async (id) => {
+      if (id) await cancelPush(id);
+      return null;
+    });
+    setPushStatus("push cancelled");
     void releaseWakeLock();
     setWakeLockHeld(false);
   }
 
   async function handleEnableNotifications() {
-    setNotifPermission(await requestNotificationPermission());
+    const permission = await requestNotificationPermission();
+    setNotifPermission(permission);
+    if (permission === "granted") {
+      const result = await subscribeToPush();
+      setPushStatus(result === "subscribed" ? "subscribed" : `push ${result}`);
+    }
   }
 
   async function handleCopy() {
@@ -203,6 +291,8 @@ export default function TimerSpike() {
       <p>
         Notifications: {notifPermission}
         <br />
+        Push: {pushStatus}
+        <br />
         Wake Lock:{" "}
         {wakeLockSupported === null
           ? "checking..."
@@ -242,6 +332,9 @@ export default function TimerSpike() {
                 , alert {new Date(r.alertFiredAt).toLocaleTimeString()}, delta{" "}
                 {deltaSeconds(r)}s
               </>
+            )}
+            {r.pushReceivedAt !== undefined && (
+              <>, push arrived {pushDeltaSeconds(r)}s after end</>
             )}
           </li>
         ))}

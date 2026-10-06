@@ -15,6 +15,9 @@ export type RunEntry = {
   expectedEnd: number; // ms since 1970
   outcome: RunOutcome;
   alertFiredAt?: number; // only set when outcome is "alerted"
+  // When the pushed notification reached the phone's service worker. This is
+  // the number that matters when the app is locked or in the background.
+  pushReceivedAt?: number;
 };
 
 export function startRun(
@@ -28,6 +31,14 @@ export function startRun(
 // Returns a new entry (we never mutate), marked as alerted.
 export function markAlerted(entry: RunEntry, firedAt: number): RunEntry {
   return { ...entry, outcome: "alerted", alertFiredAt: firedAt };
+}
+
+// Records when the push arrived (may be set before or after alertFiredAt).
+export function markPushReceived(
+  entry: RunEntry,
+  receivedAt: number,
+): RunEntry {
+  return { ...entry, pushReceivedAt: receivedAt };
 }
 
 // For runs that ended without an alert (reset or manual stop).
@@ -45,6 +56,12 @@ export function deltaSeconds(entry: RunEntry): number | null {
   return Math.round((entry.alertFiredAt - entry.expectedEnd) / 100) / 10;
 }
 
+// Same idea for the push: seconds between the expected end and push arrival.
+export function pushDeltaSeconds(entry: RunEntry): number | null {
+  if (entry.pushReceivedAt === undefined) return null;
+  return Math.round((entry.pushReceivedAt - entry.expectedEnd) / 100) / 10;
+}
+
 // Tab-separated text, so it pastes straight into a spreadsheet cell grid.
 export function formatLogAsTsv(entries: RunEntry[]): string {
   const header = [
@@ -52,6 +69,8 @@ export function formatLogAsTsv(entries: RunEntry[]): string {
     "expected_end",
     "alert_fired",
     "delta_s",
+    "push_received",
+    "push_delta_s",
     "outcome",
   ].join("\t");
   const rows = entries.map((e) =>
@@ -62,6 +81,10 @@ export function formatLogAsTsv(entries: RunEntry[]): string {
         ? ""
         : new Date(e.alertFiredAt).toISOString(),
       deltaSeconds(e)?.toString() ?? "",
+      e.pushReceivedAt === undefined
+        ? ""
+        : new Date(e.pushReceivedAt).toISOString(),
+      pushDeltaSeconds(e)?.toString() ?? "",
       e.outcome,
     ].join("\t"),
   );
