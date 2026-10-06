@@ -13,9 +13,8 @@ const NOW = 1_000_000;
 const REST_MS = REST_SECONDS * 1000;
 
 describe("REST_SECONDS", () => {
-  // TEMPORARY: expects the shortened test value. Change back to 90 with timer.ts.
-  it("is 20 (test value)", () => {
-    expect(REST_SECONDS).toBe(20);
+  it("is 90", () => {
+    expect(REST_SECONDS).toBe(90);
   });
 });
 
