@@ -36,6 +36,12 @@ describe("verifyQstashSignature", () => {
     expect(check(sign("current-key"))).toBe(true);
   });
 
+  it("accepts a body hash that has trailing = padding", () => {
+    const padded =
+      createHash("sha256").update(BODY).digest("base64url") + "=";
+    expect(check(sign("current-key", { body: padded }))).toBe(true);
+  });
+
   it("accepts a token signed with the next key (key rotation)", () => {
     expect(check(sign("next-key"))).toBe(true);
   });

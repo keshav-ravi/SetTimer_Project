@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     now: Date.now(),
   });
   if (!verified) {
+    console.error("send: QStash signature rejected");
     return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
   }
 

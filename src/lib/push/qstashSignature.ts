@@ -60,6 +60,11 @@ export function verifyQstashSignature(args: {
   }
 
   // 3. The body must be the one that was signed.
+  // QStash may include trailing "=" padding in its base64url hash, while
+  // Node's "base64url" output has none, so ignore padding when comparing.
   const bodyHash = createHash("sha256").update(body).digest("base64url");
-  return typeof payload.body === "string" && safeEqual(payload.body, bodyHash);
+  return (
+    typeof payload.body === "string" &&
+    safeEqual(payload.body.replace(/=+$/, ""), bodyHash)
+  );
 }
