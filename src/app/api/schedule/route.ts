@@ -24,6 +24,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ messageId });
   } catch (error) {
     console.error("schedule failed", error);
-    return NextResponse.json({ error: "Could not schedule push." }, { status: 502 });
+    // The detail is a short message like "QStash publish failed with status
+    // 401." It never contains secrets, and it shows up on screen for debugging.
+    const detail = error instanceof Error ? error.message : "unknown error";
+    return NextResponse.json(
+      { error: "Could not schedule push.", detail },
+      { status: 502 },
+    );
   }
 }

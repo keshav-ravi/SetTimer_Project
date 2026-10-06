@@ -203,11 +203,14 @@ export default function TimerSpike() {
       const endTime = next.endTime;
       pushChainRef.current = pushChainRef.current.then(async (previousId) => {
         if (previousId) await cancelPush(previousId);
-        return schedulePush(endTime);
+        const result = await schedulePush(endTime);
+        setPushStatus(
+          result.messageId
+            ? "push scheduled"
+            : `push NOT scheduled: ${result.error}`,
+        );
+        return result.messageId ?? null;
       });
-      void pushChainRef.current.then((id) =>
-        setPushStatus(id ? "push scheduled" : "push NOT scheduled"),
-      );
     }
     commit(next, nextRuns);
     setNow(t);

@@ -56,22 +56,37 @@ export async function subscribeToPush(): Promise<
   }
 }
 
-// Asks our server to push at `endTime`. Returns the QStash message id (used
-// to cancel), or null if there is no subscription or the call failed.
-export async function schedulePush(endTime: number): Promise<string | null> {
+// Result of asking the server to schedule a push: either the QStash message
+// id (needed to cancel later) or a short reason it failed, shown on screen.
+export type ScheduleResult =
+  | { messageId: string; error?: undefined }
+  | { messageId?: undefined; error: string };
+
+// Asks our server to push at `endTime`.
+export async function schedulePush(endTime: number): Promise<ScheduleResult> {
   try {
+    if (!isPushSupported()) return { error: "push unsupported in this browser" };
     const subscription = await getSubscription();
-    if (!subscription) return null;
+    if (!subscription) {
+      return { error: "no push subscription (tap Enable notifications)" };
+    }
     const response = await fetch("/api/schedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subscription: subscription.toJSON(), endTime }),
     });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { messageId?: string };
-    return data.messageId ?? null;
+    const data = (await response.json().catch(() => ({}))) as {
+      messageId?: string;
+      error?: string;
+      detail?: string;
+    };
+    if (!response.ok || !data.messageId) {
+      const reason = [data.error, data.detail].filter(Boolean).join(": ");
+      return { error: `server ${response.status}${reason ? ` - ${reason}` : ""}` };
+    }
+    return { messageId: data.messageId };
   } catch {
-    return null;
+    return { error: "network error calling /api/schedule" };
   }
 }
 
