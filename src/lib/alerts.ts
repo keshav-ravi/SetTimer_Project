@@ -82,9 +82,15 @@ export type AlertResult = {
 
 // "true" means we triggered the channel without an error. It cannot prove
 // the user actually heard or felt it; that's what the real-phone test is for.
-export async function fireAlert(): Promise<AlertResult> {
+//
+// When a server push is already scheduled it shows its own notification, so
+// the page passes showNotification: false to avoid a duplicate banner.
+export async function fireAlert(
+  options: { showNotification?: boolean } = {},
+): Promise<AlertResult> {
+  const { showNotification: wantNotification = true } = options;
   const sound = playBeeps();
   const vibration = vibrate();
-  const notification = await showNotification();
+  const notification = wantNotification ? await showNotification() : false;
   return { sound, vibration, notification };
 }

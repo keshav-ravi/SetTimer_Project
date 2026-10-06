@@ -91,12 +91,16 @@ export default function TimerSpike() {
   // frozen or in the background), it already alerted the user, so just log
   // it. Otherwise the page alerts on its own. This is the foreground path.
   const alertOrAttach = useCallback(
-    async (endTime: number) => {
+    async (endTime: number, scheduledPush: Promise<string | null>) => {
       const receivedAt = await readPushReceipt(endTime);
       if (receivedAt !== null) {
         attachReceipt(endTime, receivedAt);
       } else {
-        void fireAlert().then(setLastAlert);
+        // If a push was scheduled it will show the notification itself, so
+        // the page only makes sound/vibration. If scheduling failed, the
+        // page shows the notification as a fallback.
+        const pushScheduled = (await scheduledPush) !== null;
+        void fireAlert({ showNotification: !pushScheduled }).then(setLastAlert);
       }
     },
     [attachReceipt],
@@ -118,9 +122,11 @@ export default function TimerSpike() {
     commit(result.state, nextRuns);
     void releaseWakeLock();
     setWakeLockHeld(false);
-    // This run's push is due now; nothing is left to cancel.
+    // This run's push is due now; nothing is left to cancel. Keep the old
+    // chain so the alert logic can tell whether a push was scheduled.
+    const scheduledPush = pushChainRef.current;
     pushChainRef.current = Promise.resolve(null);
-    void alertOrAttach(before.endTime);
+    void alertOrAttach(before.endTime, scheduledPush);
   }, [commit, alertOrAttach]);
 
   // On mount: restore saved data, register the service worker, start the clock.
