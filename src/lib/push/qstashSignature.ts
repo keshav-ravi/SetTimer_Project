@@ -26,45 +26,63 @@ function decodeJson(part: string): Record<string, unknown> | null {
   }
 }
 
-export function verifyQstashSignature(args: {
+// Returns null if the signature is valid, otherwise a short reason string
+// (safe to log: it never contains keys or message contents).
+export function checkQstashSignature(args: {
   signature: string | null;
   body: string; // the raw request body, exactly as received
   keys: string[]; // current + next signing keys
   now: number; // ms since 1970
-}): boolean {
+}): string | null {
   const { signature, body, now } = args;
   const keys = args.keys.filter((k) => k.length > 0);
-  if (!signature || keys.length === 0) return false;
+  if (keys.length === 0) return "no signing keys configured on the server";
+  if (!signature) return "missing Upstash-Signature header";
 
   const parts = signature.split(".");
-  if (parts.length !== 3) return false;
+  if (parts.length !== 3) return "signature is not a 3-part token";
   const [headerPart, payloadPart, sigPart] = parts;
 
   const header = decodeJson(headerPart);
   const payload = decodeJson(payloadPart);
-  if (!header || !payload || header.alg !== "HS256") return false;
+  if (!header || !payload) return "token header or payload is not valid JSON";
+  if (header.alg !== "HS256") return `unexpected algorithm ${String(header.alg)}`;
 
   // 1. Signature must match one of the keys.
   const signed = `${headerPart}.${payloadPart}`;
   const signatureOk = keys.some((key) =>
     safeEqual(createHmac("sha256", key).update(signed).digest("base64url"), sigPart),
   );
-  if (!signatureOk) return false;
+  if (!signatureOk) return `signature does not match any of ${keys.length} configured key(s)`;
 
   // 2. Issuer and time window (claims are in seconds).
   const nowSeconds = now / 1000;
-  if (payload.iss !== "Upstash") return false;
-  if (typeof payload.exp !== "number" || nowSeconds > payload.exp) return false;
+  if (payload.iss !== "Upstash") return "unexpected issuer";
+  if (typeof payload.exp !== "number" || nowSeconds > payload.exp) {
+    return "token expired";
+  }
   if (typeof payload.nbf === "number" && nowSeconds < payload.nbf - 5) {
-    return false; // small allowance for clock differences
+    return "token not valid yet"; // small allowance for clock differences
   }
 
   // 3. The body must be the one that was signed.
   // QStash may include trailing "=" padding in its base64url hash, while
   // Node's "base64url" output has none, so ignore padding when comparing.
   const bodyHash = createHash("sha256").update(body).digest("base64url");
-  return (
-    typeof payload.body === "string" &&
-    safeEqual(payload.body.replace(/=+$/, ""), bodyHash)
-  );
+  if (
+    typeof payload.body !== "string" ||
+    !safeEqual(payload.body.replace(/=+$/, ""), bodyHash)
+  ) {
+    return "body hash does not match";
+  }
+  return null;
+}
+
+export function verifyQstashSignature(args: {
+  signature: string | null;
+  body: string;
+  keys: string[];
+  now: number;
+}): boolean {
+  return checkQstashSignature(args) === null;
 }

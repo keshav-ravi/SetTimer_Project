@@ -3,14 +3,14 @@
 
 import { NextResponse } from "next/server";
 import webpush from "web-push";
-import { verifyQstashSignature } from "@/lib/push/qstashSignature";
+import { checkQstashSignature } from "@/lib/push/qstashSignature";
 import { parseSubscription } from "@/lib/push/validation";
 
 export async function POST(request: Request) {
   // Read the raw text: the signature covers the exact bytes QStash sent.
   const rawBody = await request.text();
 
-  const verified = verifyQstashSignature({
+  const rejection = checkQstashSignature({
     signature: request.headers.get("upstash-signature"),
     body: rawBody,
     keys: [
@@ -19,8 +19,9 @@ export async function POST(request: Request) {
     ],
     now: Date.now(),
   });
-  if (!verified) {
-    console.error("send: QStash signature rejected");
+  if (rejection !== null) {
+    // The reason is safe to log (no keys or message contents).
+    console.error(`send: QStash signature rejected: ${rejection}`);
     return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
   }
 
