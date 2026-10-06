@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** Draft v4 | **Last updated:** Oct 6, 2026
+**Author:** [Your name] | **Status:** Draft v5 | **Last updated:** Oct 6, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 ---
@@ -165,7 +165,9 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 **Android:** Testing is deferred (no Android device available; owner decision, Oct 6, 2026). Until Android is tested, the decision rules are applied to iPhone results only, and Android is treated as P1/P2 verification.
 
-**Status:** Round 2 not yet run. The decision-rule outcome is open.
+**Round 2 results (informal, Oct 6, 2026):** iPhone installed PWA, with the server-scheduled push and a temporary 20-second test timer. A notification was delivered in all three cases: app in foreground, another app open, and screen locked. The first version showed duplicate notifications (the page and the push both alerted); this was fixed by letting the push show the notification when one is scheduled, and a later retest of all three cases passed with no duplicates. Along the way, debugging found and fixed a signature check that could reject real QStash requests.
+
+**Status:** These Round 2 runs were informal and used a shortened timer, so they do not count toward the formal matrix. The official matrix (real 90-second timer, 5 runs per cell, recording the delay for each run) is not yet run, so the decision-rule outcome is still open. Android remains deferred.
 
 **Deliverable:** A completed test matrix and a short write-up (what was tested, what happened, the decision taken). This feeds the learnings doc.
 
@@ -210,12 +212,13 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 - Is 90s acceptable for P0, and how soon do users ask for adjustment?
 - Does the log-triggered timer reduce app-switching, or do users still open the Clock app out of habit?
-- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)* **Interim (Oct 6, 2026):** the in-page alert is not good enough on a locked iPhone; server-sent Web Push is being tested.
+- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)* **Interim (Oct 6, 2026):** the in-page alert is not good enough on a locked iPhone. Server-sent Web Push delivered notifications on a locked iPhone in informal testing (20-second timer); the official 90-second matrix is still to be run.
 - If server-sent push is required, is the added infrastructure acceptable for P0, and is QStash the right long-term scheduler?
 - Should the exercise preset list be organized by muscle group or alphabetical?
 
 ## 17. Change Log
 
+- **v5:** Recorded informal Round 2 results (iPhone installed PWA, 20-second test timer): server-scheduled push delivered notifications when the app was in the foreground, in the background, and locked, after fixing duplicate notifications. The timer was restored to 90 seconds for the official matrix, which is still to be run. No requirements changed.
 - **v4:** Recorded Round 1 spike results (iPhone installed PWA): alerts work in the foreground but fail when the phone is locked or another app is open, because iOS freezes the page. Amended the spike scope to include a minimal scheduled Web Push (Upstash QStash + `web-push`). Deferred Android testing. Added a note to Req 5b, a technical consideration for push, a risk row, and an interim answer to the iOS open question. No P0 requirements were removed or reprioritized.
 - **v3:** Added Section 12 (Timer Feasibility Spike) with test matrix, pass criteria, time-box, and decision rules. Updated launch plan, risks, and open questions. Renumbered later sections.
 - **v2:** Timer fixed at 90s for P0; adjustable duration moved to P1. Timer starts only on set log and never auto-restarts. Added non-goal against auto-looping timers. Accounts moved to P0 (required for persistence). Non-goal reworded to allow history-based next-weight suggestion (P2).
