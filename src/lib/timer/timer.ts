@@ -5,7 +5,7 @@
 // The ONE place the rest duration is defined. P1 (adjustable duration)
 // will replace this single value.
 // TEMPORARY for testing: shortened from 90. Set back to 90 before real use.
-export const REST_SECONDS = 25;
+export const REST_SECONDS = 20;
 
 // A "discriminated union": the `status` field tells TypeScript which
 // other fields exist. Think of it like a tagged variant in Python.
