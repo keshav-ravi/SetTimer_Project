@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** Draft v3 | **Last updated:** Oct 6, 2026
+**Author:** [Your name] | **Status:** Draft v4 | **Last updated:** Oct 6, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 ---
@@ -67,7 +67,7 @@ Supporting signals: sets logged per session; timer dismiss rate; timer reset rat
 4. **Set logging:** Record reps and weight per set, per exercise.
 5. **Rest timer (fixed at 90 seconds):**
    - 5a. Logging a set starts the timer immediately.
-   - 5b. At zero, the timer alerts the user (sound, vibration, notification where supported) and returns to idle.
+   - 5b. At zero, the timer alerts the user (sound, vibration, notification where supported) and returns to idle. *(Spike finding: on iPhone, a notification created by the page cannot fire while the phone is locked or another app is open. Delivering the alert in those cases may require a server-sent Web Push; see Section 12, "Spike progress".)*
    - 5c. The timer does not restart on its own. It starts again only when the next set is logged.
    - 5d. If a set is logged while the timer is running, the timer resets to 90 seconds. No stacked timers.
    - 5e. The user can stop or dismiss the timer at any point.
@@ -147,6 +147,26 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 **Out of scope for the spike:** accounts, data storage, UI polish, analytics.
 
+**Scope amendment (v4):** The first test round showed the in-page alert fails when the screen is locked or another app is open (see below). To test the only known fix, the spike now also includes a minimal server component: a scheduled Web Push (QStash delays a call to our `/api/send` route, which sends the push). It stores no user data and has no accounts or database. This is still throwaway spike scope. Whether it carries into P0 depends on the result.
+
+### Spike progress (as of Oct 6, 2026)
+
+**Round 1: in-page alert only, iPhone installed PWA** (few runs per cell; the target is 5):
+
+| Screen state | Result |
+|---|---|
+| Screen on, app in foreground | Alert on time (0s lag) |
+| Screen on, other app open | Notification appeared only after returning to the app. (Two early runs seemed to alert on time or 3.2s late, but a later retest showed the alert only appeared after re-entering the app; treat this cell as failing.) |
+| Screen locked | Alert did not appear until the phone was unlocked and the app reopened |
+
+**Diagnosis:** iOS freezes a home-screen web app's JavaScript when the phone locks or the user leaves the app. The in-page timer cannot fire, so the alert runs late, when the user comes back. The service worker cannot fix this either: it has no reliable timer, and scheduled notifications are not supported on iOS. Something outside the phone must send the alert at the end time.
+
+**Fix under test (Round 2):** Server-scheduled Web Push. At "Log set" the app asks the server to push at `endTime`; reset or stop cancels it; at `endTime` the server sends the push, which wakes the service worker to show the notification. The run log records when the push actually arrived. Pass criteria are unchanged (within 3 seconds in 9 of 10 locked-screen runs).
+
+**Android:** Testing is deferred (no Android device available; owner decision, Oct 6, 2026). Until Android is tested, the decision rules are applied to iPhone results only, and Android is treated as P1/P2 verification.
+
+**Status:** Round 2 not yet run. The decision-rule outcome is open.
+
 **Deliverable:** A completed test matrix and a short write-up (what was tested, what happened, the decision taken). This feeds the learnings doc.
 
 ## 13. Technical Considerations
@@ -154,13 +174,15 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 - **Stack:** Next.js, Supabase (auth and Postgres), Vercel, PostHog for analytics.
 - **PWA:** manifest and service worker for home-screen install.
 - **Timer reliability:** Web apps are throttled in the background, and iOS web push requires home-screen install (iOS 16.4+). Use end-timestamp logic, the Wake Lock API while the timer runs, and test on a real iPhone in week 1.
+- **Locked-screen alerts (spike finding):** The page's own JavaScript is frozen when an iPhone is locked, so alerts at the end time must come from a server-sent Web Push. Current design: the app subscribes to push (VAPID keys), the server schedules a delayed call through Upstash QStash, and `/api/send` (signature-verified) sends the push with the `web-push` library. Required environment variables: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` (see `.env.example`). The push subscription is held only inside the scheduled message, not stored by us. Delivery time depends on Apple's push service and is what the spike measures.
 - **Privacy:** Supabase Row Level Security so users only access their own rows; collect minimum data; include delete-account and a plain-language privacy note.
 
 ## 14. Risks and Mitigations
 
 | Risk | Mitigation |
 |---|---|
-| Timer unreliable when screen is locked or app is backgrounded | Timestamp-based timer, Wake Lock, PWA install, gating week-1 spike with explicit pass criteria and decision rules (Section 12) |
+| Timer unreliable when screen is locked or app is backgrounded | Timestamp-based timer, Wake Lock, PWA install, gating week-1 spike with explicit pass criteria and decision rules (Section 12). Spike showed the in-page alert fails on locked iPhone; server-scheduled Web Push is under test. |
+| Server-sent push adds infrastructure and a third-party service (Upstash QStash) | Keep it minimal and stateless; no user data stored; verify request signatures; accept only known push-service hosts |
 | Privacy of workout and account data | RLS, minimal data, delete-account, privacy note |
 | Low retention | Track W4 retention; interview drop-offs; prefill (P2) |
 | Weak differentiation vs. Hevy/Strong | Measure wedge metrics; write direct comparison in learnings doc |
@@ -188,11 +210,13 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 - Is 90s acceptable for P0, and how soon do users ask for adjustment?
 - Does the log-triggered timer reduce app-switching, or do users still open the Clock app out of habit?
-- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)*
+- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)* **Interim (Oct 6, 2026):** the in-page alert is not good enough on a locked iPhone; server-sent Web Push is being tested.
+- If server-sent push is required, is the added infrastructure acceptable for P0, and is QStash the right long-term scheduler?
 - Should the exercise preset list be organized by muscle group or alphabetical?
 
 ## 17. Change Log
 
+- **v4:** Recorded Round 1 spike results (iPhone installed PWA): alerts work in the foreground but fail when the phone is locked or another app is open, because iOS freezes the page. Amended the spike scope to include a minimal scheduled Web Push (Upstash QStash + `web-push`). Deferred Android testing. Added a note to Req 5b, a technical consideration for push, a risk row, and an interim answer to the iOS open question. No P0 requirements were removed or reprioritized.
 - **v3:** Added Section 12 (Timer Feasibility Spike) with test matrix, pass criteria, time-box, and decision rules. Updated launch plan, risks, and open questions. Renumbered later sections.
 - **v2:** Timer fixed at 90s for P0; adjustable duration moved to P1. Timer starts only on set log and never auto-restarts. Added non-goal against auto-looping timers. Accounts moved to P0 (required for persistence). Non-goal reworded to allow history-based next-weight suggestion (P2).
 - **v1:** Initial draft.
