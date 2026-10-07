@@ -2,10 +2,20 @@
 // We validate the request, then hand QStash a delayed call to /api/send.
 
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { publishAt } from "@/lib/push/qstash";
 import { parseScheduleRequest } from "@/lib/push/validation";
 
 export async function POST(request: Request) {
+  // Only signed-in users may schedule or cancel pushes.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
   const body: unknown = await request.json().catch(() => null);
   const parsed = parseScheduleRequest(body, Date.now());
   if (!parsed.ok) {

@@ -4,7 +4,11 @@ A mobile-first web app for gym-goers. Log a set, and a 90-second rest timer star
 
 The product spec is in [`PRD.md`](PRD.md) (source of truth). Working rules for contributors are in [`CLAUDE.md`](CLAUDE.md).
 
-## Current status: timer feasibility spike
+## Current status: P0 build in progress (spike passed for iPhone)
+
+The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in is done (username and password through Supabase Auth); next is choosing an exercise and logging a set. See `PRD.md` and the plan in `CLAUDE.md`.
+
+## The timer feasibility spike
 
 The product's wedge depends on the rest timer alerting reliably during a real workout, when the phone is often locked or another app is open. Before building anything else, we are running a throwaway spike (PRD Section 12) to answer:
 
@@ -85,6 +89,9 @@ Copy `.env.example` to `.env.local` for local development, and add the same name
 | `QSTASH_TOKEN` | Upstash console, QStash tab |
 | `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` | Upstash console, QStash tab |
 | `QSTASH_URL` | Only if Upstash shows a regional URL instead of the default |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase, Project Settings, API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase, Project Settings, API (server-only secret; used for delete-account later) |
+| `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | PostHog project settings (host defaults to `https://us.i.posthog.com`) |
 
 `NEXT_PUBLIC_` values are fixed into the build, so changing that one needs a redeploy **without the build cache**. The others take effect on any new deployment.
 

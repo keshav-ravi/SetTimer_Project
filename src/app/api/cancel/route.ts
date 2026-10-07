@@ -1,9 +1,19 @@
 // Browser -> us: "cancel the push I scheduled" (timer reset or stopped).
 
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { cancelMessage } from "@/lib/push/qstash";
 
 export async function POST(request: Request) {
+  // Only signed-in users may schedule or cancel pushes.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
   const body = (await request.json().catch(() => null)) as {
     messageId?: unknown;
   } | null;
