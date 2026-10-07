@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** Draft v8 | **Last updated:** Oct 6, 2026
+**Author:** [Your name] | **Status:** Draft v10 | **Last updated:** Oct 6, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 ---
@@ -61,24 +61,25 @@ Supporting signals: sets logged per session; timer dismiss rate; timer reset rat
 
 ### P0 (must ship)
 
-1. **Auth:** Sign up / log in via email magic link or Google. No password storage.
+1. **Auth:** Sign up and log in with a username and password only. No email, magic link, or social login. Passwords are never stored in plain text; the auth system keeps only a salted hash. *(Changed in v10 from email magic link or Google.)* **P0 limitation:** with no email there is no password reset, so a forgotten password means the account cannot be recovered. Recovery is a candidate for P1.
 2. **Calendar:** Select the workout date. Defaults to today.
 3. **Exercise selection:** Choose from a preset exercise list.
 4. **Set logging:** Record reps and weight per set, per exercise.
 5. **Rest timer (fixed at 90 seconds):**
    - 5a. Logging a set starts the timer immediately.
-   - 5b. At zero, the timer alerts the user (sound, vibration, notification where supported) and returns to idle. *(Spike finding: on iPhone, a notification created by the page cannot fire while the phone is locked or another app is open. Delivering the alert in those cases may require a server-sent Web Push; see Section 12, "Spike progress".)*
+   - 5b. At zero, the timer alerts the user (sound, vibration, notification where supported) and returns to idle.
    - 5c. The timer does not restart on its own. It starts again only when the next set is logged.
    - 5d. If a set is logged while the timer is running, the timer resets to 90 seconds. No stacked timers.
    - 5e. The user can stop or dismiss the timer at any point.
+   - 5f. *(Added v9, from the spike.)* The alert must reach the user while the phone is locked or another app is open. On iPhone this requires a server-scheduled Web Push to the installed app: logging a set schedules the push, and reset or stop cancels it. The page's own alert covers the foreground. See Section 12.
 6. **History:** View past workouts by date.
+10. **Install-to-home-screen (PWA) flow.** *(Moved from P1 to P0 in v9 because of the spike: on iPhone, alerts only work in the installed app.)* Guide iPhone users through "Add to Home Screen" before the timer is relied on, ask for notification permission from inside the installed app on a user tap, and explain clearly when notifications are blocked. Number kept as 10 so references stay valid.
 
 ### P1
 
 7. **Adjustable rest duration:** User-selected value, persisted per user, applied to the next timer start.
 8. **Custom exercises:** Add a new exercise type.
 9. **Edit/delete logged sets.**
-10. **Install-to-home-screen (PWA) flow** to improve alarm reliability.
 
 ### P2
 
@@ -90,12 +91,13 @@ Supporting signals: sets logged per session; timer dismiss rate; timer reset rat
 - As a lifter, I want the timer to stop after it alerts me so it never runs without my input.
 - As a lifter, I want my workouts saved to my account so I don't lose my history.
 - As a lifter, I want to pick a date and see what I did on it.
+- As an iPhone lifter, I want clear steps to add the app to my home screen and turn on notifications, so the rest alert still reaches me when my phone is locked.
 - *(P1)* As a lifter, I want to change my rest duration because heavy compound lifts need more than 90 seconds.
 - *(P2)* As a lifter, I want to see what I lifted last time so I know what to attempt today.
 
 ## 10. Core Flow
 
-Open app -> today's date preselected -> pick exercise -> enter weight and reps -> tap "Log set" -> 90-second timer starts -> alarm fires and timer goes idle -> perform next set -> log it -> timer starts again.
+First visit on iPhone: sign in -> install prompt (Add to Home Screen) -> open the installed app -> turn on notifications. Then, every session: open app -> today's date preselected -> pick exercise -> enter weight and reps -> tap "Log set" -> 90-second timer starts -> alarm fires and timer goes idle -> perform next set -> log it -> timer starts again.
 
 **Aha moment:** the second set, when the timer started from the log tap alone.
 
@@ -202,14 +204,19 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 - At least one channel perceptible with the phone on a bench or in a pocket: **met** (haptic and banner, even on silent).
 - Returns to idle and does not restart: **met** (unit tests, a browser check, and the tap-notification test showing state idle).
 
-**Decision-rule outcome (iPhone only):** The installed PWA passes and the Safari tab fails, so the row "Passes only as installed PWA" applies. That row says to move the PWA install flow (Req 10) from P1 to P0 and add an install prompt to the core flow. **Recommended, not yet applied:** the change moves a P1 item into P0 and needs owner approval. Android has not been tested, so the "both platforms" rows cannot be evaluated yet.
+**Decision (owner, Oct 6, 2026): the spike PASSES for iPhone.** The installed home-screen app, with a server-scheduled Web Push, met every pass criterion, and the Safari tab does not work. The decision rule "Passes only as installed PWA" applies on iPhone, so:
+- **PWA install (Req 10) moves from P1 to P0**, and an install step is added to the core flow (Section 10).
+- **Server-scheduled push (Req 5f) is part of the P0 timer.** It uses Upstash QStash plus Web Push, as built in the spike.
+- Build of P0 may start, with the spike's timer logic and push code as the starting point.
+
+**Not covered by this decision:** Android is untested, so the "both platforms" rows are not evaluated. Android is treated as a later check, not a P0 gate. Edge cases still to retest: a force-quit app left closed past the end time, Low Power Mode, back-to-back sets, and reload mid-run followed by Stop.
 
 **Deliverable:** A completed test matrix and a short write-up (what was tested, what happened, the decision taken). This feeds the learnings doc.
 
 ## 13. Technical Considerations
 
 - **Stack:** Next.js, Supabase (auth and Postgres), Vercel, PostHog for analytics.
-- **PWA:** manifest and service worker for home-screen install.
+- **PWA:** manifest and service worker for home-screen install. Required (P0) on iPhone, where push alerts only work in the installed app.
 - **Timer reliability:** Web apps are throttled in the background, and iOS web push requires home-screen install (iOS 16.4+). Use end-timestamp logic, the Wake Lock API while the timer runs, and test on a real iPhone in week 1.
 - **Locked-screen alerts (spike finding):** The page's own JavaScript is frozen when an iPhone is locked, so alerts at the end time must come from a server-sent Web Push. Current design: the app subscribes to push (VAPID keys), the server schedules a delayed call through Upstash QStash, and `/api/send` (signature-verified) sends the push with the `web-push` library. Required environment variables: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` (see `.env.example`). The push subscription is held only inside the scheduled message, not stored by us. Delivery time depends on Apple's push service and is what the spike measures.
 - **Privacy:** Supabase Row Level Security so users only access their own rows; collect minimum data; include delete-account and a plain-language privacy note.
@@ -219,6 +226,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 | Risk | Mitigation |
 |---|---|
 | Timer unreliable when screen is locked or app is backgrounded | Timestamp-based timer, Wake Lock, PWA install, gating week-1 spike with explicit pass criteria and decision rules (Section 12). Spike showed the in-page alert fails on locked iPhone; server-scheduled Web Push is under test. |
+| iPhone users who skip the home-screen install get no alerts | P0 install flow (Req 10): prompt after sign-in, clear steps, and a visible warning when notifications are off |
 | Server-sent push adds infrastructure and a third-party service (Upstash QStash) | Keep it minimal and stateless; no user data stored; verify request signatures; accept only known push-service hosts |
 | Privacy of workout and account data | RLS, minimal data, delete-account, privacy note |
 | Low retention | Track W4 retention; interview drop-offs; prefill (P2) |
@@ -247,12 +255,14 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 - Is 90s acceptable for P0, and how soon do users ask for adjustment?
 - Does the log-triggered timer reduce app-switching, or do users still open the Clock app out of habit?
-- Is locked-screen alarm reliability on iOS good enough to ship as P0? *(Answered by the Section 12 spike; record the result here.)* **Interim (Oct 6, 2026):** the in-page alert is not good enough on a locked iPhone. Server-sent Web Push delivered notifications on a locked iPhone in informal testing (20-second timer); the official 90-second runs on the installed iPhone app met the locked-screen bar (10 of 10 within 3s, 0.7 to 2.2s), and the Safari tab failed as expected, so the installed PWA is required on iPhone. Android and a few edge cases are still untested.
+- Is locked-screen alarm reliability on iOS good enough to ship as P0? **Answered (Oct 6, 2026): yes, but only as an installed PWA with server-scheduled push.** The in-page alert alone fails when the phone is locked or another app is open. With the push, 10 of 10 locked-screen runs arrived within 3 seconds (0.7 to 2.2s), and the Safari tab does not work. Android is untested.
 - If server-sent push is required, is the added infrastructure acceptable for P0, and is QStash the right long-term scheduler?
 - Should the exercise preset list be organized by muscle group or alphabetical?
 
 ## 17. Change Log
 
+- **v10:** Owner decision: replaced magic link / Google sign-in (Req 1) with username and password. No email is collected, which also reduces data held. P0 has no password recovery, recorded as a limitation. Implementation choice (Supabase Auth with a username mapped to an internal address) is in the P0 plan, not the PRD.
+- **v9:** Owner decision: the timer spike is **passed for iPhone**. Moved PWA install (Req 10) from P1 to P0. Added Req 5f (server-scheduled push alert, part of the P0 timer) and removed the spike-finding note from 5b. Added an install step to the core flow, a user story, a risk row, and a PWA technical note. Answered the iOS open question. Android remains untested and is not a P0 gate. P0 build may start after the owner approves the plan.
 - **v8:** Recorded the remaining iPhone results. Other app open: 5 of 5 within 3 seconds (1.0 to 2.0s). Safari tab: failed as expected (notifications cannot be enabled outside the installed app). Edge cases: cellular, reset, stop, tap notification and permission denied behave correctly; force-quit is a partial result. The decision-rule row "Passes only as installed PWA" now applies on iPhone, which would move Req 10 (PWA install) from P1 to P0. That change is recommended but not applied; it needs owner approval. No requirements changed.
 - **v7:** Recorded 90-second iPhone results (installed PWA): foreground 5 of 5, home screen 5 of 5, locked screen 10 of 10 within 3 seconds (0.7 to 2.2s), other app open 1 of 1, with no duplicate notifications. The locked-screen pass criterion is met. The Safari-tab row, edge cases and Android remain untested. No requirements changed; a possible move of PWA install (Req 10) to P0 is pending the Safari-tab result and owner approval.
 - **v6:** Recorded the first official 90-second run on iPhone (installed PWA): foreground, home screen, other app open, and locked screen all passed, with the push arriving 1.1 to 1.8 seconds after the end. These are single runs, so the formal pass criteria (5 runs per cell; 9 of 10 locked) are not yet met and the decision is still open.

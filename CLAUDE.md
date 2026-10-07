@@ -6,7 +6,7 @@ SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) 
 
 ## Scope rules (read first)
 
-- Complete the timer spike first (see "Current phase"). Then build **P0 only** unless I explicitly say otherwise. P1 and P2 items in `PRD.md` are off limits until I approve them.
+- The timer spike is complete and passed for iPhone (see "Current phase"). Build **P0 only** unless I explicitly say otherwise. P1 and P2 items in `PRD.md` are off limits until I approve them.
 - If a request is not in `PRD.md`, ask before building it.
 - Do not add dependencies without telling me why.
 - Non-goals: workout recommendations, calorie tracking, social features, native apps, auto-looping timers.
@@ -15,7 +15,7 @@ SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) 
 
 - Next.js (App Router) with TypeScript
 - Tailwind CSS
-- Supabase (auth via magic link or Google, Postgres)
+- Supabase (auth via username and password, Postgres). The username is mapped to an internal address behind the scenes; no real email is collected.
 - Vercel for deployment
 - PostHog for analytics
 - Vitest for unit tests
@@ -30,17 +30,23 @@ SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) 
 - Lint: `npm run lint`
 - Test: `npm test`
 
-## Current phase: timer spike (do this first)
+## Current phase: P0 build
 
-Until I say the spike is complete, build **only** the throwaway spike described in `PRD.md` Section 12:
+The timer spike (`PRD.md` Section 12) passed for iPhone as an installed PWA with a server-scheduled push. Android is untested and is not a P0 gate. P0 is built as vertical slices, in the order agreed in the plan:
 
-- One page, one "Log set" button, the timer rules below, and a visible state/remaining-time display.
-- No auth, database, calendar, styling, or analytics.
-- Add a simple on-screen run log (timestamp started, timestamp alert fired, delta in seconds) so I can fill in the test matrix.
-- Alert via sound, vibration, and notification where supported; Wake Lock while running.
-- Add a PWA manifest and service worker only if I ask, so I can test browser tab vs. installed PWA.
-- Keep the timer logic in a separate pure module so it can be reused if the spike passes.
-- Do not start any P0 feature until I report the spike result and we update `PRD.md`.
+0. Housekeeping (Tailwind, `.gitignore`, this file)
+1. Username and password sign-in (Supabase Auth) and PostHog
+2. Choose an exercise and log a set (with Row Level Security)
+3. The rest timer inside the real flow, including the server-scheduled push
+4. Install-to-home-screen flow and notification setup (Req 10)
+5. History by date
+6. Delete account and privacy note
+
+Build one slice at a time. Propose the slice's files and approach, wait for my approval, then build, run lint, tests and build, and summarize in plain English.
+
+What carries over from the spike: `src/lib/timer/` (pure rules and tests), `src/lib/push/` and `src/app/api/{schedule,cancel,send}` (server-scheduled push through Upstash QStash and Web Push), `src/lib/alerts.ts`, `src/lib/wakeLock.ts`, and `public/sw.js`. The spike-only UI (`TimerSpike.tsx`, `runLog.ts`, `spikeStorage.ts`) is retired in slice 3.
+
+Why a server push: iOS freezes a web app's JavaScript when the phone is locked or another app is open, so an in-page timer cannot alert on time. On iPhone, push only works in the installed home-screen app, which is why the install flow is P0.
 
 ## Timer rules (critical)
 
@@ -59,7 +65,7 @@ Until I say the spike is complete, build **only** the throwaway spike described 
 
 - Every table with user data must have Row Level Security so users can read and write only their own rows.
 - Never commit secrets. Use `.env.local` and keep `.env*` in `.gitignore`.
-- Collect the minimum data needed: email, workouts, sets.
+- Collect the minimum data needed: username, workouts, sets.
 - Include a delete-account path before launch.
 
 ## Analytics events (PostHog)
