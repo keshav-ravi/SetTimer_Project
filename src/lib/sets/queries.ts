@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SetRow } from "./group";
+import { summarizeDay, type HistoryDay } from "./history";
 
 export type ExerciseOption = { id: string; name: string };
 
@@ -80,4 +81,47 @@ export async function getLastUsedExerciseId(
   if (error) throw new Error("Could not load your last exercise.");
   const rows = (data ?? []) as { exercise_id: string }[];
   return rows[0]?.exercise_id ?? null;
+}
+
+// Shape of a workout row with its sets and exercise names nested inside.
+type DbHistoryWorkout = {
+  workout_date: string;
+  sets: { created_at: string; exercises: { name: string } | null }[];
+};
+
+export const HISTORY_PAGE_SIZE = 30;
+
+// The user's workouts, newest first, one page at a time. `beforeDate` is the
+// oldest date already shown, so the next page continues from there. Workouts
+// with no sets (there shouldn't be any) are skipped.
+export async function getHistory(
+  supabase: SupabaseClient,
+  beforeDate?: string,
+): Promise<{ days: HistoryDay[]; hasMore: boolean }> {
+  let query = supabase
+    .from("workouts")
+    .select("workout_date, sets(created_at, exercises(name))")
+    .order("workout_date", { ascending: false })
+    // One extra row tells us whether another page exists.
+    .limit(HISTORY_PAGE_SIZE + 1);
+  if (beforeDate) query = query.lt("workout_date", beforeDate);
+
+  const { data, error } = await query;
+  if (error) throw new Error("Could not load your history.");
+
+  const rows = (data ?? []) as unknown as DbHistoryWorkout[];
+  const hasMore = rows.length > HISTORY_PAGE_SIZE;
+  const days = rows
+    .slice(0, HISTORY_PAGE_SIZE)
+    .map((row) =>
+      summarizeDay(
+        row.workout_date,
+        row.sets.map((s) => ({
+          exerciseName: s.exercises?.name ?? "Unknown exercise",
+          createdAt: s.created_at,
+        })),
+      ),
+    )
+    .filter((day) => day.setCount > 0);
+  return { days, hasMore };
 }

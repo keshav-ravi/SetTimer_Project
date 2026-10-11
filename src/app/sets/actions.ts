@@ -4,36 +4,37 @@
 // the user is signed in, validate input again (never trust the browser), and
 // use the user's own Supabase connection so Row Level Security applies.
 
-import { isValidDateString } from "@/lib/sets/dates";
+import { isAllowedWorkoutDate } from "@/lib/sets/dates";
 import type { SetRow } from "@/lib/sets/group";
 import { latestSet } from "@/lib/sets/group";
 import {
   getExercises,
+  getHistory,
   getLastUsedExerciseId,
   getSetsForWorkout,
   getWorkoutId,
   type ExerciseOption,
 } from "@/lib/sets/queries";
+import type { HistoryDay } from "@/lib/sets/history";
 import { parseSetInput } from "@/lib/sets/validation";
 import { createClient } from "@/lib/supabase/server";
 
-export type TodayState = {
+export type DayState = {
   exercises: ExerciseOption[];
   sets: SetRow[];
   lastUsedExerciseId: string | null;
 };
 
-export type ActionResult<T> =
-  | ({ ok: true } & T)
-  | { ok: false; error: string };
+export type ActionResult<T> = ({ ok: true } & T) | { ok: false; error: string };
 
 const NOT_SIGNED_IN = "You are signed out. Please sign in again.";
 
-// Everything the logging screen needs for the user's current day.
-export async function loadTodayState(
+// Everything the logging screen needs for the chosen day.
+export async function loadDayState(
   localDate: string,
-): Promise<ActionResult<{ state: TodayState }>> {
-  if (!isValidDateString(localDate)) return { ok: false, error: "Invalid date." };
+): Promise<ActionResult<{ state: DayState }>> {
+  if (!isAllowedWorkoutDate(localDate, Date.now()))
+    return { ok: false, error: "Invalid date." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: NOT_SIGNED_IN };
@@ -47,7 +48,7 @@ export async function loadTodayState(
     ]);
     return { ok: true, state: { exercises, sets, lastUsedExerciseId } };
   } catch (error) {
-    console.error("loadTodayState failed", error);
+    console.error("loadDayState failed", error);
     return { ok: false, error: "Could not load your data. Please try again." };
   }
 }
@@ -58,7 +59,9 @@ export async function logSet(input: {
   weight: string;
   localDate: string;
 }): Promise<ActionResult<{ sets: SetRow[]; startedWorkout: boolean }>> {
-  if (!isValidDateString(input.localDate)) return { ok: false, error: "Invalid date." };
+  if (!isAllowedWorkoutDate(input.localDate, Date.now())) {
+    return { ok: false, error: "Invalid date." };
+  }
   const parsed = parseSetInput(input.reps, input.weight);
   if (!parsed.ok) return { ok: false, error: parsed.error };
 
@@ -109,7 +112,8 @@ export async function logSet(input: {
 export async function deleteLastSet(
   localDate: string,
 ): Promise<ActionResult<{ sets: SetRow[] }>> {
-  if (!isValidDateString(localDate)) return { ok: false, error: "Invalid date." };
+  if (!isAllowedWorkoutDate(localDate, Date.now()))
+    return { ok: false, error: "Invalid date." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: NOT_SIGNED_IN };
@@ -135,5 +139,32 @@ export async function deleteLastSet(
   } catch (error) {
     console.error("deleteLastSet failed", error);
     return { ok: false, error: "Could not delete the set. Please try again." };
+  }
+}
+
+// One page of the History list. `beforeDate` continues from the oldest day
+// already shown.
+export async function loadHistory(
+  beforeDate?: string,
+): Promise<ActionResult<{ days: HistoryDay[]; hasMore: boolean }>> {
+  if (
+    beforeDate !== undefined &&
+    !isAllowedWorkoutDate(beforeDate, Date.now())
+  ) {
+    return { ok: false, error: "Invalid date." };
+  }
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, error: NOT_SIGNED_IN };
+
+  try {
+    const { days, hasMore } = await getHistory(supabase, beforeDate);
+    return { ok: true, days, hasMore };
+  } catch (error) {
+    console.error("loadHistory failed", error);
+    return {
+      ok: false,
+      error: "Could not load your history. Please try again.",
+    };
   }
 }

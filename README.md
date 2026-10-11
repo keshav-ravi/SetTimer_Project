@@ -6,7 +6,7 @@ The product spec is in [`PRD.md`](PRD.md) (source of truth). Working rules for c
 
 ## Current status: P0 build in progress (spike passed for iPhone)
 
-The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in (username and password through Supabase Auth), choosing an exercise and logging a set, the rest timer, and the install-to-home-screen flow are done. Next are history by date and delete account. See `PRD.md` and the plan in `CLAUDE.md`.
+The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in (username and password through Supabase Auth), choosing an exercise and logging a set, the rest timer, and the install-to-home-screen flow are done. history by date, and a date control are done. Next is delete account and the privacy note. See `PRD.md` and the plan in `CLAUDE.md`.
 
 ## The timer feasibility spike
 
@@ -55,9 +55,10 @@ Key design rules (from `CLAUDE.md`):
 | `src/lib/alerts.ts`, `src/lib/wakeLock.ts` | Sound/vibration/notification and screen Wake Lock (both feature-detected) |
 | `src/lib/push/*` | Server-scheduled push: browser helpers, request checks, QStash client, signature check |
 | `src/app/api/{schedule,cancel,send}/route.ts` | Schedule and cancel the push (sign-in required) and send it (QStash only) |
-| `src/lib/sets/*` + tests | Pure rules for sets: validation, grouping, today-only defaults, steppers, dates; plus server queries |
+| `src/lib/sets/*` + tests | Pure rules for sets: validation, grouping, same-day defaults, steppers, date math and labels, history summaries; plus server queries |
 | `src/app/sets/actions.ts` | Server actions: load today, log a set, delete the last set |
-| `src/components/{LogScreen,RestTimer,TodaySets}.tsx` | The logging screen, the timer bar and today's list |
+| `src/components/{LogScreen,RestTimer,DaySets,DatePicker}.tsx` | The logging screen, the timer bar, the chosen day's sets and the date control |
+| `src/app/history/page.tsx`, `src/components/HistoryList.tsx` | The History page: past workouts newest first, 30 at a time, tapping one opens that day |
 | `src/lib/install/*` + tests | Install flow logic: device detection (iPhone, installed or not) and which setup card to show; `useAlertsSetup` turns alerts on and sends a test alert |
 | `src/components/{SetupFlow,InstallGuide}.tsx` | The setup card and the full-screen "Add to Home Screen" guide (Req 10) |
 | `scripts/generate-icons.mjs` | Regenerates the app icons into `public/` (`node scripts/generate-icons.mjs`) |
@@ -137,5 +138,6 @@ Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 
 6. **Test timer:** shortened temporarily for quick testing, then restored to 90 seconds.
 7. **P0 slices:** sign-in, exercise picker and set logging with Row Level Security, and the rest timer inside the real flow. The spike page and its run log were retired (they remain in git history).
 8. **Install flow (Req 10):** a guided "Add to Home Screen" screen for iPhone, a one-tap "Turn on rest alerts" step in the installed app, help when notifications are blocked or iOS is too old, a test-alert button, and real app icons.
+9. **Date and history (Req 2, 6):** a date control on the logging screen (previous/next day and the native picker, no future dates), logging and deleting the last set on past days (the rest timer starts only for today), and a History page of past workouts.
 
 See `git log` for the full detail, and `PRD.md` Section 17 for the spec change log.
