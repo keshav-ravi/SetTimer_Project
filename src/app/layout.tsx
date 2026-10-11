@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SetTimer spike",
-  description: "Rest-timer feasibility spike",
+  title: "SetTimer",
+  description: "Log your sets. The rest timer starts itself.",
   manifest: "/manifest.webmanifest",
   // iOS ignores most of the manifest; these let it install as a standalone app.
   icons: { apple: "/apple-touch-icon.png" },

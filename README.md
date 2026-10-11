@@ -6,7 +6,7 @@ The product spec is in [`PRD.md`](PRD.md) (source of truth). Working rules for c
 
 ## Current status: P0 build in progress (spike passed for iPhone)
 
-The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in is done (username and password through Supabase Auth); next is choosing an exercise and logging a set. See `PRD.md` and the plan in `CLAUDE.md`.
+The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in (username and password through Supabase Auth), choosing an exercise and logging a set, and the rest timer are done. Next are the install-to-home-screen flow, history by date, and delete account. See `PRD.md` and the plan in `CLAUDE.md`.
 
 ## The timer feasibility spike
 
@@ -49,17 +49,20 @@ Key design rules (from `CLAUDE.md`):
 
 | Path | What it does |
 |---|---|
-| `src/lib/timer/timer.ts` | Pure timer rules: `logSet`, `stop`, `tick`, `getRemainingMs`, `REST_SECONDS` |
-| `src/lib/runLog.ts` | Pure run-log helpers: alert delta, push delta, TSV export |
-| `src/lib/alerts.ts` | Sound, vibration and notification (each feature-detected) |
-| `src/lib/wakeLock.ts` | Screen Wake Lock, safe when unsupported |
-| `src/lib/spikeStorage.ts` | Saves the log and running timer in `localStorage` |
-| `src/lib/push/client.ts` | Browser side: subscribe to push, schedule/cancel, read push arrival time |
-| `src/lib/push/validation.ts` | Checks requests; only known push-service hosts are accepted |
-| `src/lib/push/qstash.ts` | Talks to QStash (delayed delivery) with plain `fetch` |
-| `src/lib/push/qstashSignature.ts` | Verifies that `/api/send` calls really come from QStash |
-| `src/app/api/{schedule,cancel,send}/route.ts` | The three server endpoints |
-| `src/components/TimerSpike.tsx` | The spike page (UI only; rules live in `lib/`) |
+| `src/lib/timer/timer.ts` + tests | Pure timer rules: `logSet`, `stop`, `tick`, `getRemainingMs`, `REST_SECONDS` |
+| `src/lib/timer/useRestTimer.ts` | Connects the rules to the clock, Wake Lock, alerts and the server push |
+| `src/lib/timer/{format,storage,alertsStatus}.ts` + tests | Pure helpers: "1:30" display, saved-timer validation, alert-setup status |
+| `src/lib/alerts.ts`, `src/lib/wakeLock.ts` | Sound/vibration/notification and screen Wake Lock (both feature-detected) |
+| `src/lib/push/*` | Server-scheduled push: browser helpers, request checks, QStash client, signature check |
+| `src/app/api/{schedule,cancel,send}/route.ts` | Schedule and cancel the push (sign-in required) and send it (QStash only) |
+| `src/lib/sets/*` + tests | Pure rules for sets: validation, grouping, today-only defaults, steppers, dates; plus server queries |
+| `src/app/sets/actions.ts` | Server actions: load today, log a set, delete the last set |
+| `src/components/{LogScreen,RestTimer,AlertsNotice,TodaySets}.tsx` | The logging screen, timer bar, alerts notice and today's list |
+| `src/lib/auth/username.ts` + tests | Username and password rules; maps a username to Supabase's internal address |
+| `src/lib/supabase/*`, `src/proxy.ts`, `src/app/login/*` | Supabase connections, the sign-in guard, and the login screen |
+| `src/lib/analytics.ts` | PostHog wrapper (user id only, no autocapture) |
+| `supabase/migrations/0001_init.sql` | Tables and Row Level Security (run once in the Supabase SQL editor) |
+| `src/app/api/keepalive/route.ts`, `vercel.json` | Daily ping so the free Supabase project does not pause |
 | `public/sw.js` | Service worker: shows push notifications, records arrival time |
 | `public/manifest.webmanifest`, `public/*.png` | PWA install files and placeholder icons |
 
@@ -129,5 +132,6 @@ Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 
 4. **Web Push:** server-scheduled push through QStash so alerts arrive when the phone is locked or the app is in the background.
 5. **Debugging the push path:** surfaced the real reason when scheduling or signature checks failed, fixed a signature check that rejected padded hashes, and removed duplicate notifications.
 6. **Test timer:** shortened temporarily for quick testing, then restored to 90 seconds.
+7. **P0 slices:** sign-in, exercise picker and set logging with Row Level Security, and the rest timer inside the real flow. The spike page and its run log were retired (they remain in git history).
 
 See `git log` for the full detail, and `PRD.md` Section 17 for the spec change log.

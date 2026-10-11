@@ -44,7 +44,7 @@ The timer spike (`PRD.md` Section 12) passed for iPhone as an installed PWA with
 
 Build one slice at a time. Propose the slice's files and approach, wait for my approval, then build, run lint, tests and build, and summarize in plain English.
 
-What carries over from the spike: `src/lib/timer/` (pure rules and tests), `src/lib/push/` and `src/app/api/{schedule,cancel,send}` (server-scheduled push through Upstash QStash and Web Push), `src/lib/alerts.ts`, `src/lib/wakeLock.ts`, and `public/sw.js`. The spike-only UI (`TimerSpike.tsx`, `runLog.ts`, `spikeStorage.ts`) is retired in slice 3.
+What carries over from the spike: `src/lib/timer/` (pure rules and tests), `src/lib/push/` and `src/app/api/{schedule,cancel,send}` (server-scheduled push through Upstash QStash and Web Push), `src/lib/alerts.ts`, `src/lib/wakeLock.ts`, and `public/sw.js`. The spike-only UI (`TimerSpike.tsx`, `runLog.ts`, `spikeStorage.ts`) was retired in slice 3; it remains in git history.
 
 Why a server push: iOS freezes a web app's JavaScript when the phone is locked or another app is open, so an in-page timer cannot alert on time. On iPhone, push only works in the installed home-screen app, which is why the install flow is P0.
 

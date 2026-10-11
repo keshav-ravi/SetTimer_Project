@@ -3,18 +3,17 @@
 // The main logging screen: pick an exercise, enter reps and weight, tap
 // "Log set". The timer is added in a later slice; this slice only saves sets.
 import { useEffect, useState } from "react";
+import AlertsNotice from "@/components/AlertsNotice";
+import RestTimer from "@/components/RestTimer";
 import TodaySets from "@/components/TodaySets";
 import { deleteLastSet, loadTodayState, logSet } from "@/app/sets/actions";
 import { track } from "@/lib/analytics";
 import { defaultsForExercise } from "@/lib/sets/defaults";
 import { localDateString } from "@/lib/sets/dates";
 import { formatSet, latestSet, type SetRow } from "@/lib/sets/group";
+import { useRestTimer } from "@/lib/timer/useRestTimer";
 import type { ExerciseOption } from "@/lib/sets/queries";
-import {
-  REPS_STEP,
-  WEIGHT_STEP,
-  stepValue,
-} from "@/lib/sets/steppers";
+import { REPS_STEP, WEIGHT_STEP, stepValue } from "@/lib/sets/steppers";
 import {
   REPS_MAX,
   REPS_MIN,
@@ -22,6 +21,9 @@ import {
   WEIGHT_MIN,
   parseSetInput,
 } from "@/lib/sets/validation";
+
+// Shown when a request fails outright (for example no signal at the gym).
+const NETWORK_ERROR = "No connection. Check your signal and try again.";
 
 // A number box with - and + buttons (both at least 44px tall for thumbs).
 function Stepper({
@@ -81,6 +83,7 @@ function Stepper({
 }
 
 export default function LogScreen() {
+  const restTimer = useRestTimer();
   const [exercises, setExercises] = useState<ExerciseOption[]>([]);
   const [sets, setSets] = useState<SetRow[]>([]);
   const [exerciseId, setExerciseId] = useState("");
@@ -88,33 +91,36 @@ export default function LogScreen() {
   const [weight, setWeight] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(
-    null,
-  );
+  const [message, setMessage] = useState<{
+    text: string;
+    isError: boolean;
+  } | null>(null);
 
   // Load exercises and today's sets once. The date is computed here, in the
   // browser, so "today" is the user's own day, not the server's (UTC).
   useEffect(() => {
     let cancelled = false;
-    loadTodayState(localDateString(new Date())).then((result) => {
-      if (cancelled) return;
-      if (!result.ok) {
-        setMessage({ text: result.error, isError: true });
+    loadTodayState(localDateString(new Date()))
+      .catch(() => ({ ok: false as const, error: NETWORK_ERROR }))
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.ok) {
+          setMessage({ text: result.error, isError: true });
+          setLoaded(true);
+          return;
+        }
+        const { exercises, sets, lastUsedExerciseId } = result.state;
+        // Preselect the exercise used most recently (a brand-new user gets the
+        // first one in the list).
+        const initial = lastUsedExerciseId ?? exercises[0]?.id ?? "";
+        const defaults = defaultsForExercise(initial, sets);
+        setExercises(exercises);
+        setSets(sets);
+        setExerciseId(initial);
+        setReps(defaults.reps);
+        setWeight(defaults.weight);
         setLoaded(true);
-        return;
-      }
-      const { exercises, sets, lastUsedExerciseId } = result.state;
-      // Preselect the exercise used most recently (a brand-new user gets the
-      // first one in the list).
-      const initial = lastUsedExerciseId ?? exercises[0]?.id ?? "";
-      const defaults = defaultsForExercise(initial, sets);
-      setExercises(exercises);
-      setSets(sets);
-      setExerciseId(initial);
-      setReps(defaults.reps);
-      setWeight(defaults.weight);
-      setLoaded(true);
-    });
+      });
     return () => {
       cancelled = true;
     };
@@ -135,15 +141,29 @@ export default function LogScreen() {
       return;
     }
     setBusy(true); // also blocks a double-tap from saving the set twice
-    const result = await logSet({
-      exerciseId,
-      reps,
-      weight,
-      localDate: localDateString(new Date()),
-    });
-    setBusy(false);
+    // Start the rest timer right away, on the tap, without waiting for the
+    // network (gym reception can be slow). If the save fails we stop it below.
+    restTimer.start();
+    let result: Awaited<ReturnType<typeof logSet>>;
+    try {
+      result = await logSet({
+        exerciseId,
+        reps,
+        weight,
+        localDate: localDateString(new Date()),
+      });
+    } catch {
+      // The request itself failed (no signal, server unreachable).
+      result = { ok: false, error: NETWORK_ERROR };
+    } finally {
+      setBusy(false); // always re-enable the buttons, even after an error
+    }
     if (!result.ok) {
-      setMessage({ text: result.error, isError: true });
+      restTimer.cancel(); // the set was not saved, so no rest timer
+      setMessage({
+        text: `${result.error} The rest timer was stopped.`,
+        isError: true,
+      });
       return;
     }
     setSets(result.sets);
@@ -157,12 +177,22 @@ export default function LogScreen() {
   async function handleDeleteLast() {
     const last = latestSet(sets);
     if (!last) return;
-    if (!window.confirm(`Delete your last set (${last.exerciseName}, ${formatSet(last)})?`)) {
+    if (
+      !window.confirm(
+        `Delete your last set (${last.exerciseName}, ${formatSet(last)})?`,
+      )
+    ) {
       return;
     }
     setBusy(true);
-    const result = await deleteLastSet(localDateString(new Date()));
-    setBusy(false);
+    let result: Awaited<ReturnType<typeof deleteLastSet>>;
+    try {
+      result = await deleteLastSet(localDateString(new Date()));
+    } catch {
+      result = { ok: false, error: NETWORK_ERROR };
+    } finally {
+      setBusy(false);
+    }
     if (!result.ok) {
       setMessage({ text: result.error, isError: true });
       return;
@@ -218,17 +248,31 @@ export default function LogScreen() {
           aria-live="polite"
           role={message?.isError ? "alert" : undefined}
           className={`min-h-5 text-sm font-medium ${
-            message?.isError ? "text-red-600" : "text-green-700 dark:text-green-400"
+            message?.isError
+              ? "text-red-600"
+              : "text-green-700 dark:text-green-400"
           }`}
         >
           {message?.text}
         </p>
 
+        <AlertsNotice
+          status={restTimer.alerts}
+          pushIssue={restTimer.pushIssue}
+          onEnable={restTimer.enableAlerts}
+        />
+
         <TodaySets sets={sets} onDeleteLast={handleDeleteLast} busy={busy} />
       </div>
 
-      {/* Primary action pinned to the bottom, reachable with one thumb. */}
+      {/* Timer and primary action pinned to the bottom, reachable with one thumb. */}
       <div className="fixed inset-x-0 bottom-0 border-t border-black/10 bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-white/20">
+        <RestTimer
+          timer={restTimer.timer}
+          remainingMs={restTimer.remainingMs}
+          restOver={restTimer.restOver}
+          onStop={restTimer.stop}
+        />
         <button
           type="button"
           onClick={handleLogSet}

@@ -1,6 +1,6 @@
 // Fires the end-of-rest alert on three channels: sound, vibration and a
 // notification. Each channel is feature-detected and failures are swallowed,
-// because the spike's job is to find out which ones actually work.
+// because browsers differ in which ones work.
 
 // One shared audio context. Browsers (especially iOS Safari) only allow
 // sound after a user tap, so primeAudio() is called from the Log set click.

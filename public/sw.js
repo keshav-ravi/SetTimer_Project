@@ -1,4 +1,4 @@
-// Minimal service worker for the timer spike. It exists so that:
+// Minimal service worker for SetTimer. It exists so that:
 //  1. notifications can be shown via registration.showNotification()
 //     (required on Android Chrome),
 //  2. a Web Push from our server can wake the phone and show the

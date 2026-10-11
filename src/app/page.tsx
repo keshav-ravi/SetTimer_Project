@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import LogScreen from "@/components/LogScreen";
 import { emailToUsername } from "@/lib/auth/username";
@@ -21,10 +20,7 @@ export default async function Home() {
       <LogScreen />
 
       {/* Kept above the fixed Log set bar by the screen's bottom padding. */}
-      <footer className="flex items-center justify-between gap-2 pb-28 text-sm">
-        <Link href="/spike" className="flex min-h-11 items-center underline">
-          Timer spike
-        </Link>
+      <footer className="flex items-center justify-end gap-2 pb-44 text-sm">
         <form action={signOut}>
           <button type="submit" className="min-h-11 px-3 font-medium underline">
             Sign out

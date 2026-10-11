@@ -115,3 +115,18 @@ export async function readPushReceipt(endTime: number): Promise<number | null> {
     return null;
   }
 }
+
+// The service worker adds one tiny receipt per timer. Delete ones older than a
+// day so they don't pile up forever.
+export async function pruneOldReceipts(): Promise<void> {
+  try {
+    const cache = await caches.open(RECEIPT_CACHE);
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    for (const request of await cache.keys()) {
+      const endTime = Number(request.url.split("/push-received/")[1]);
+      if (Number.isFinite(endTime) && endTime < cutoff) await cache.delete(request);
+    }
+  } catch {
+    // Best effort only.
+  }
+}
