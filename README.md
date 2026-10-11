@@ -125,6 +125,16 @@ Use the real 90-second timer. For each cell run 5 times and record whether the a
 
 Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 of 10 locked-screen runs. The table above shows the results so far (details in PRD Section 12).
 
+## Security notes
+
+- **Database:** every table has Row Level Security. A set can only belong to its owner's workout, values are range-checked in the database, and deleting a user deletes their rows. The test script in the review covered cross-user reads, edits, deletes, ownership spoofing and the admin API.
+- **Secrets:** only `NEXT_PUBLIC_` values reach the browser. The service-role key is used by exactly one server action (delete account). No secret has ever been committed.
+- **Login cookie:** `HttpOnly` (page scripts cannot read it), `Secure` in production, `SameSite=Lax`.
+- **Headers on every response:** `X-Frame-Options: DENY` and `frame-ancestors 'none'` (no framing), `nosniff`, a referrer policy, a permissions policy and HSTS. `X-Powered-By` is hidden. A strict script policy (CSP `script-src`) is not set yet.
+- **Analytics:** PostHog autocapture, session recording, surveys and heatmaps are off, and page addresses are cut to their path (no `?date=`).
+- **API routes:** schedule and cancel need a login; `/api/send` needs a valid QStash signature; `/api/keepalive` needs the cron secret (constant-time check). The push callback address is the site's fixed production domain.
+- **Known and accepted for now:** public sign-up goes straight to Supabase (so account rules and rate limits are Supabase's, not the app's); no per-user limit on scheduling alerts; no password reset.
+
 ## Known limitations
 
 - Sound and vibration come from the page, so they only happen while the page is running. When the phone is locked, the system plays the notification's own sound. iOS Safari has no vibration API.

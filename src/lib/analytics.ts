@@ -2,6 +2,7 @@
 // Privacy rule (CLAUDE.md): the only identifier we ever send is the user id.
 // Never put a username, email, or workout details in event properties.
 import posthog from "posthog-js";
+import { sanitizeEvent } from "./analyticsSanitize";
 
 // The events we track from the start.
 export type AnalyticsEvent =
@@ -23,6 +24,13 @@ export function initAnalytics(): void {
       process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
     // Autocapture records text of clicked elements; we only want our own events.
     autocapture: false,
+    // Never record screens or clicks, and never show survey pop-ups. These
+    // can otherwise be switched on from PostHog's dashboard settings.
+    disable_session_recording: true,
+    disable_surveys: true,
+    capture_heatmaps: false,
+    // Cut page addresses back to their path (no ?date=...) before sending.
+    before_send: (event) => sanitizeEvent(event),
     // People are only created for identified (signed-in) users.
     person_profiles: "identified_only",
   });

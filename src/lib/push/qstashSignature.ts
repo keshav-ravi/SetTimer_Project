@@ -4,14 +4,8 @@
 // (QStash rotates keys, so there is a "current" and a "next"), the token is
 // not expired, and the token's body hash matches the body we received.
 
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-
-function safeEqual(a: string, b: string): boolean {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  // timingSafeEqual needs equal lengths and avoids timing side channels.
-  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
-}
+import { createHash, createHmac } from "node:crypto";
+import { safeEqual } from "../security/safeEqual";
 
 function decodeJson(part: string): Record<string, unknown> | null {
   try {
@@ -46,14 +40,19 @@ export function checkQstashSignature(args: {
   const header = decodeJson(headerPart);
   const payload = decodeJson(payloadPart);
   if (!header || !payload) return "token header or payload is not valid JSON";
-  if (header.alg !== "HS256") return `unexpected algorithm ${String(header.alg)}`;
+  if (header.alg !== "HS256")
+    return `unexpected algorithm ${String(header.alg)}`;
 
   // 1. Signature must match one of the keys.
   const signed = `${headerPart}.${payloadPart}`;
   const signatureOk = keys.some((key) =>
-    safeEqual(createHmac("sha256", key).update(signed).digest("base64url"), sigPart),
+    safeEqual(
+      createHmac("sha256", key).update(signed).digest("base64url"),
+      sigPart,
+    ),
   );
-  if (!signatureOk) return `signature does not match any of ${keys.length} configured key(s)`;
+  if (!signatureOk)
+    return `signature does not match any of ${keys.length} configured key(s)`;
 
   // 2. Issuer and time window (claims are in seconds).
   const nowSeconds = now / 1000;

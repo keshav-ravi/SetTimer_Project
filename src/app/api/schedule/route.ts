@@ -3,6 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { callbackBaseUrl } from "@/lib/push/callbackUrl";
 import { publishAt } from "@/lib/push/qstash";
 import { parseScheduleRequest } from "@/lib/push/validation";
 
@@ -24,8 +25,15 @@ export async function POST(request: Request) {
 
   try {
     // QStash must be able to reach this URL, so it only works on a
-    // deployed (public) site, not on localhost.
-    const destination = `${new URL(request.url).origin}/api/send`;
+    // deployed (public) site, not on localhost. In production the address is
+    // the site's own fixed domain, not whatever the request claims to be.
+    const base = callbackBaseUrl({
+      appUrl: process.env.APP_URL,
+      vercelEnv: process.env.VERCEL_ENV,
+      productionHost: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+      requestOrigin: new URL(request.url).origin,
+    });
+    const destination = `${base}/api/send`;
     const messageId = await publishAt(
       destination,
       parsed.value,
@@ -34,11 +42,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ messageId });
   } catch (error) {
     console.error("schedule failed", error);
-    // The detail is a short message like "QStash publish failed with status
-    // 401." It never contains secrets, and it shows up on screen for debugging.
-    const detail = error instanceof Error ? error.message : "unknown error";
+    // The cause is logged on the server above. The browser only gets a
+    // generic message, so we don't reveal details about our setup.
     return NextResponse.json(
-      { error: "Could not schedule push.", detail },
+      { error: "Could not schedule push." },
       { status: 502 },
     );
   }

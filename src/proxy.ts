@@ -5,6 +5,7 @@
 // routes check the user themselves.
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { authCookieOptions } from "@/lib/supabase/cookies";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -13,6 +14,8 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Same cookie settings as the server helper, so refreshed cookies match.
+      cookieOptions: authCookieOptions(process.env.NODE_ENV),
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
