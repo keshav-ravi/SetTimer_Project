@@ -3,7 +3,7 @@
 // Full-screen "add to Home Screen" instructions for iPhone. Shown once after
 // sign-in (see SetupFlow) and reopened from the setup card. It is a modal
 // dialog: it sits on top of the app, can be closed with a button or Escape.
-import { useEffect, useRef } from "react";
+import { useDialog } from "@/lib/useDialog";
 
 // Simple inline icons so the steps are easy to recognise on the phone.
 function ShareIcon() {
@@ -66,24 +66,17 @@ function Step({
 }
 
 export default function InstallGuide({ onClose }: { onClose: () => void }) {
-  const primaryButton = useRef<HTMLButtonElement>(null);
-
-  // Move focus into the dialog when it opens, and close on Escape.
-  useEffect(() => {
-    primaryButton.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  // Focus moves into the dialog once when it opens; Escape closes it.
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="install-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-background p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+      className="fixed inset-0 z-50 overflow-y-auto bg-background p-6 outline-none pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
     >
       <div className="mx-auto flex max-w-sm flex-col gap-5">
         <div>
@@ -114,7 +107,6 @@ export default function InstallGuide({ onClose }: { onClose: () => void }) {
 
         <div className="flex flex-col gap-2">
           <button
-            ref={primaryButton}
             type="button"
             onClick={onClose}
             className="h-14 rounded-xl bg-foreground text-lg font-bold text-background"

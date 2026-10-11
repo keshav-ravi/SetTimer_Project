@@ -4,7 +4,7 @@
 // reps, or delete it. It sits on top of the app like the other panels: close
 // it with Cancel or Escape. Save is only offered when something really
 // changed, and Delete asks "are you sure?" inside the panel.
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Stepper from "@/components/Stepper";
 import {
   canSave,
@@ -21,6 +21,7 @@ import {
   WEIGHT_MAX,
   WEIGHT_MIN,
 } from "@/lib/sets/validation";
+import { useDialog } from "@/lib/useDialog";
 
 export default function SetEditor({
   set,
@@ -43,18 +44,10 @@ export default function SetEditor({
 }) {
   const [draft, setDraft] = useState<SetDraft>(() => draftFromSet(set));
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const cancelButton = useRef<HTMLButtonElement>(null);
 
-  // Move focus into the panel when it opens, and close on Escape (but not
-  // while a save or delete is in progress).
-  useEffect(() => {
-    cancelButton.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose, busy]);
+  // Focus moves into the panel once when it opens; Escape closes it, but not
+  // while a save or delete is in progress.
+  const dialogRef = useDialog<HTMLDivElement>(onClose, busy);
 
   const changed = canSave(set, draft);
   // Shown only once the user has typed something that isn't allowed.
@@ -63,10 +56,12 @@ export default function SetEditor({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-set-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-background p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+      className="fixed inset-0 z-50 overflow-y-auto bg-background p-6 outline-none pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
     >
       <div className="mx-auto flex max-w-sm flex-col gap-5">
         <div>
@@ -135,7 +130,6 @@ export default function SetEditor({
               {busy ? "Saving..." : "Save"}
             </button>
             <button
-              ref={cancelButton}
               type="button"
               onClick={onClose}
               disabled={busy}

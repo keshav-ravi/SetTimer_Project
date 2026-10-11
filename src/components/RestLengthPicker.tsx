@@ -3,7 +3,6 @@
 // The "Rest length" panel (Req 7): five quick choices plus - and + 15 second
 // buttons. It sits on top of the app like the install guide: close it with
 // Done or Escape. Every change is saved at once (see LogScreen).
-import { useEffect, useRef } from "react";
 import {
   REST_PRESETS,
   REST_STEP_SECONDS,
@@ -11,6 +10,7 @@ import {
   stepRestSeconds,
 } from "@/lib/settings/restDuration";
 import { MAX_REST_SECONDS, MIN_REST_SECONDS } from "@/lib/timer/timer";
+import { useDialog } from "@/lib/useDialog";
 
 export default function RestLengthPicker({
   seconds,
@@ -21,27 +21,20 @@ export default function RestLengthPicker({
   onChange: (next: number) => void;
   onClose: () => void;
 }) {
-  const doneButton = useRef<HTMLButtonElement>(null);
-
-  // Move focus into the panel when it opens, and close on Escape.
-  useEffect(() => {
-    doneButton.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  // Focus moves into the panel once when it opens; Escape closes it.
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
 
   const stepButton =
     "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-black/5 text-2xl font-semibold disabled:opacity-30 dark:bg-white/10";
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="rest-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-background p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+      className="fixed inset-0 z-50 overflow-y-auto bg-background p-6 outline-none pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
     >
       <div className="mx-auto flex max-w-sm flex-col gap-5">
         <div>
@@ -116,7 +109,6 @@ export default function RestLengthPicker({
         </p>
 
         <button
-          ref={doneButton}
           type="button"
           onClick={onClose}
           className="h-14 rounded-xl bg-foreground text-lg font-bold text-background"
