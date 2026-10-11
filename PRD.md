@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** v15, P0 MVP built and deployed; iterating | **Last updated:** Oct 11, 2026
+**Author:** [Your name] | **Status:** v16, P0 MVP built and deployed; iterating | **Last updated:** Oct 11, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 **Where things stand:** The timer spike passed for iPhone, and every P0 requirement is built, deployed and covered by automated tests. The product is now an MVP that will be iterated on. See Section 18 for what is done, what is known to be missing, and the backlog.
@@ -67,11 +67,11 @@ Supporting signals: sets logged per session; timer dismiss rate; timer reset rat
 2. **Calendar:** Select the workout date. Defaults to today. *(v13)* A date control on the logging screen (previous and next day buttons, plus the phone's native date picker). Future dates are not allowed. Sets can be logged, and the last set deleted, for any past date.
 3. **Exercise selection:** Choose from a preset exercise list.
 4. **Set logging:** Record reps and weight per set, per exercise.
-5. **Rest timer (fixed at 90 seconds):**
+5. **Rest timer (90 seconds by default; adjustable, Req 7):**
    - 5a. Logging a set starts the timer immediately. *(v13)* Only when the set is logged for today: logging a set for a past date does not start or reset the timer.
    - 5b. At zero, the timer alerts the user (sound, vibration, notification where supported) and returns to idle.
    - 5c. The timer does not restart on its own. It starts again only when the next set is logged.
-   - 5d. If a set is logged while the timer is running, the timer resets to 90 seconds. No stacked timers.
+   - 5d. If a set is logged while the timer is running, the timer resets to the chosen rest length (90 seconds unless the user changed it). No stacked timers.
    - 5e. The user can stop or dismiss the timer at any point.
    - 5f. *(Added v9, from the spike.)* The alert must reach the user while the phone is locked or another app is open. On iPhone this requires a server-scheduled Web Push to the installed app: logging a set schedules the push, and reset or stop cancels it. The page's own alert covers the foreground. See Section 12.
 6. **History:** View past workouts by date. *(v13)* A History page lists past workouts, newest first (the latest 30, with a Show more button), each with its exercises and set count; tapping a day opens it on the logging screen.
@@ -80,7 +80,7 @@ Supporting signals: sets logged per session; timer dismiss rate; timer reset rat
 
 ### P1
 
-7. **Adjustable rest duration:** User-selected value, persisted per user, applied to the next timer start.
+7. **Adjustable rest duration:** User-selected value, persisted per user, applied to the next timer start. **Done (v16).** A "Rest: 1:30" button in the timer bar opens a panel with presets (1:00, 1:30, 2:00, 2:30, 3:00) and -/+ 15 second buttons, from 15 seconds to 10 minutes. It is saved to the user's account (with a copy on the device, so it works offline) and applies from the next start or reset; a running timer is never changed. Default 90 seconds.
 8. **Custom exercises:** Add a new exercise type.
 9. **Edit/delete logged sets** (any set, and editing values). The delete-last-set part is P0 (Req 9a).
 13. **Exercise search:** a search box in the exercise picker. P0 uses a plain dropdown of the preset list. *(Added v11.)*
@@ -96,7 +96,7 @@ Supporting signals: sets logged per session; timer dismiss rate; timer reset rat
 - As a lifter, I want my workouts saved to my account so I don't lose my history.
 - As a lifter, I want to pick a date and see what I did on it.
 - As an iPhone lifter, I want clear steps to add the app to my home screen and turn on notifications, so the rest alert still reaches me when my phone is locked.
-- *(P1)* As a lifter, I want to change my rest duration because heavy compound lifts need more than 90 seconds.
+- As a lifter, I want to change my rest duration because heavy compound lifts need more than 90 seconds. *(Req 7, done)*
 - *(P2)* As a lifter, I want to see what I lifted last time so I know what to attempt today.
 
 ## 10. Core Flow
@@ -109,12 +109,12 @@ First visit on iPhone: sign in -> install prompt (Add to Home Screen) -> open th
 
 | Event | Result |
 |---|---|
-| Log set (idle) | State = running; end time = now + 90s |
-| Log set (running) | End time reset to now + 90s |
+| Log set (idle) | State = running; end time = now + the user's rest length (default 90s) |
+| Log set (running) | End time reset to now + the user's rest length |
 | End time reached | Alert fires; state = idle; no further action |
 | Manual stop | State = idle |
 
-Implementation note: store the end timestamp, not a decrementing counter, so the timer survives tab throttling and screen lock. Duration lives in one constant so P1 replaces a single value.
+Implementation note: store the end timestamp, not a decrementing counter, so the timer survives tab throttling and screen lock. The default (90 seconds) lives in one constant; the user's chosen length (Req 7) is passed into the timer rules.
 
 ## 12. Timer Feasibility Spike (Week 1, gating)
 
@@ -262,7 +262,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 ## 16. Open Questions
 
-- Is 90s acceptable for P0, and how soon do users ask for adjustment?
+- Is 90s acceptable as the default, and which rest lengths do users actually pick? (Req 7 is built; `timer_started` and `timer_reset` events carry `rest_seconds` to answer this.)
 - Does the log-triggered timer reduce app-switching, or do users still open the Clock app out of habit?
 - Is locked-screen alarm reliability on iOS good enough to ship as P0? **Answered (Oct 6, 2026): yes, but only as an installed PWA with server-scheduled push.** The in-page alert alone fails when the phone is locked or another app is open. With the push, 10 of 10 locked-screen runs arrived within 3 seconds (0.7 to 2.2s), and the Safari tab does not work. Android is untested.
 - If server-sent push is required, is the added infrastructure acceptable for P0, and is QStash the right long-term scheduler?
@@ -272,6 +272,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 ## 17. Change Log
 
+- **v16:** P1 Req 7 (adjustable rest duration) built and verified. Owner decisions: the control lives in the timer bar on the logging screen; presets are 1:00, 1:30, 2:00, 2:30 and 3:00 plus a +/- 15 second control (range 15 seconds to 10 minutes); the value is saved per user in the database (new `user_settings` table with Row Level Security, plus a copy on the device so it works offline); a running timer is never changed, the new length applies to the next start or reset; `timer_started` and `timer_reset` events carry a `rest_seconds` number. 90 seconds remains the default. The push scheduling window grew from 10 to 15 minutes so a 10-minute rest is never rejected over a small clock difference. Section 5, 11, 16 and 18 updated.
 - **v15:** Status update. The timer spike passed for iPhone and all P0 requirements are built, deployed and tested; the product is now an MVP that will be iterated on. Added Section 18 (build status, quality and security notes, known gaps and backlog); marked the spike section complete; updated the launch plan, risks and open questions (exercise list order answered; open sign-up and Android launch scope added). No requirements changed.
 - **v14:** Owner decisions for P0 slice 6 (delete account and privacy note): deleting an account requires re-entering the password; PostHog data is disclosed in the privacy note rather than deleted automatically; the privacy note shows no contact line for now (deletion is self-service in the app); the Account link sits next to Sign out.
 - **v13:** Owner decisions for P0 slice 5 (date and history, Req 2 and 6): the rest timer starts only for today's sets (an exception to 5a), future dates are blocked, the logging screen gets a date control and there is a History page listing the latest 30 workouts with Show more. Past dates can be logged to and the last set deleted.
@@ -303,6 +304,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 | 6 | History by date | Done. Latest 30 workouts with Show more. |
 | 9a | Delete the last set | Done. |
 | 10 | Install-to-home-screen flow | Done for iPhone: guided install, one-tap alerts setup, test alert, blocked and old-iOS help, real icons. |
+| 7 (P1) | Adjustable rest duration | Done (v16). Saved per user; applies to the next start or reset. |
 | (Sec 13) | Delete account and privacy note | Done. Password re-check; privacy note has no contact line for now. |
 | (CLAUDE.md) | Analytics events | All seven are sent (user id only). Please confirm they appear in PostHog. |
 
@@ -323,7 +325,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 - **Icon:** an initial design; iterate later.
 
 ### Backlog (each item needs explicit approval before it is built)
-- **P1:** Req 7 adjustable rest duration (the next planned item; the timer already keeps the duration in one constant); Req 8 custom exercises; Req 9 edit and delete any logged set and edit values; Req 13 exercise search.
+- **P1:** Req 8 custom exercises; Req 9 edit and delete any logged set and edit values; Req 13 exercise search.
 - **P2:** Req 11 prefill from the last session and a rule-based next-weight suggestion. P0 only copies the latest set from the same day.
 - **Candidates raised during the build (not yet in the PRD as requirements):** password recovery; Android install prompt and testing; account recovery code; open-sign-up hardening.
 

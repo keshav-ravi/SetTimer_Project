@@ -40,7 +40,7 @@ Log set again / Stop ──POST /api/cancel──▶ QStash message deleted
 
 Key design rules (from `CLAUDE.md`):
 - The timer stores the **end timestamp**, never a decrementing counter, so it stays correct after tab throttling or screen lock.
-- `REST_SECONDS = 90` lives in exactly one place (`src/lib/timer/timer.ts`).
+- The default rest length, `DEFAULT_REST_SECONDS = 90`, lives in exactly one place (`src/lib/timer/timer.ts`); the user's chosen length is passed into the timer rules.
 - Timer rules are pure functions with unit tests, separate from the UI.
 - Notification permission is requested only from a user tap, never on page load.
 - The Wake Lock API keeps the screen on while the timer runs, and is skipped where unsupported.
@@ -49,8 +49,10 @@ Key design rules (from `CLAUDE.md`):
 
 | Path | What it does |
 |---|---|
-| `src/lib/timer/timer.ts` + tests | Pure timer rules: `logSet`, `stop`, `tick`, `getRemainingMs`, `REST_SECONDS` |
+| `src/lib/timer/timer.ts` + tests | Pure timer rules: `logSet`, `stop`, `tick`, `getRemainingMs`, `DEFAULT_REST_SECONDS` and the 15 s to 10 min limits |
 | `src/lib/timer/useRestTimer.ts` | Connects the rules to the clock, Wake Lock, alerts and the server push |
+| `src/lib/settings/*` + tests, `src/app/settings/actions.ts` | The user's rest length (Req 7): validation, presets, ±15s step, the device copy, and saving to the account |
+| `src/components/RestLengthPicker.tsx` | The "Rest length" panel opened from the timer bar |
 | `src/lib/timer/{format,storage,alertsStatus}.ts` + tests | Pure helpers: "1:30" display, saved-timer validation, alert-setup status |
 | `src/lib/alerts.ts`, `src/lib/wakeLock.ts` | Sound/vibration/notification and screen Wake Lock (both feature-detected) |
 | `src/lib/push/*` | Server-scheduled push: browser helpers, request checks, QStash client, signature check |
@@ -69,7 +71,7 @@ Key design rules (from `CLAUDE.md`):
 | `src/app/privacy/page.tsx` | The plain-language privacy note (public) |
 | `src/lib/supabase/*`, `src/proxy.ts`, `src/app/login/*` | Supabase connections, the sign-in guard, and the login screen |
 | `src/lib/analytics.ts` | PostHog wrapper (user id only, no autocapture) |
-| `supabase/migrations/0001_init.sql` | Tables and Row Level Security (run once in the Supabase SQL editor) |
+| `supabase/migrations/0001_init.sql`, `0002_user_settings.sql` | Tables and Row Level Security (run each once in the Supabase SQL editor) |
 | `src/app/api/keepalive/route.ts`, `vercel.json` | Daily ping so the free Supabase project does not pause |
 | `public/sw.js` | Service worker: shows push notifications, records arrival time |
 | `public/manifest.webmanifest`, `public/*.png` | PWA install files and the app icons (initial design; edit the script above to change it) |
@@ -154,5 +156,6 @@ Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 
 8. **Install flow (Req 10):** a guided "Add to Home Screen" screen for iPhone, a one-tap "Turn on rest alerts" step in the installed app, help when notifications are blocked or iOS is too old, a test-alert button, and real app icons.
 9. **Date and history (Req 2, 6):** a date control on the logging screen (previous/next day and the native picker, no future dates), logging and deleting the last set on past days (the rest timer starts only for today), and a History page of past workouts.
 10. **Delete account and privacy note:** an Account page where the user re-enters their password to permanently delete their account, workouts and sets (any pending rest alert is cancelled), a public privacy note, and an Account link next to Sign out.
+11. **Adjustable rest length (Req 7):** a "Rest: 1:30" button in the timer bar opens presets (1:00 to 3:00) and ±15 second buttons, 15 seconds to 10 minutes, saved per user (`supabase/migrations/0002_user_settings.sql`) with a copy on the device. A running timer is never changed.
 
 See `git log` for the full detail, and `PRD.md` Section 17 for the spec change log.

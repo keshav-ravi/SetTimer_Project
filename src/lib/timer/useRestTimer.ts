@@ -18,7 +18,14 @@ import {
 } from "@/lib/push/client";
 import { acquireWakeLock, releaseWakeLock } from "@/lib/wakeLock";
 import { loadStoredTimer, saveStoredTimer } from "./storage";
-import { IDLE, getRemainingMs, logSet, stop as stopRules, tick, type TimerState } from "./timer";
+import {
+  IDLE,
+  getRemainingMs,
+  logSet,
+  stop as stopRules,
+  tick,
+  type TimerState,
+} from "./timer";
 
 // If we only notice the timer ended long after it did (the page was closed or
 // frozen), a beep now would just be confusing. Skip the alert past this.
@@ -42,7 +49,10 @@ export function useRestTimer() {
   const pushChainRef = useRef<Promise<string | null>>(Promise.resolve(null));
 
   const persist = useCallback(() => {
-    saveStoredTimer({ timer: timerRef.current, pushMessageId: pushIdRef.current });
+    saveStoredTimer({
+      timer: timerRef.current,
+      pushMessageId: pushIdRef.current,
+    });
   }, []);
 
   const commitTimer = useCallback(
@@ -67,7 +77,9 @@ export function useRestTimer() {
         }
         const result = await schedulePush(endTime);
         pushIdRef.current = result.messageId ?? null;
-        setPushIssue(result.messageId ? null : (result.error ?? "unknown error"));
+        setPushIssue(
+          result.messageId ? null : (result.error ?? "unknown error"),
+        );
         persist();
         return pushIdRef.current;
       });
@@ -79,7 +91,11 @@ export function useRestTimer() {
   // frozen or in the background) it has alerted the user, so do nothing.
   // Otherwise (app open) the page alerts itself.
   const alertOnExpiry = useCallback(
-    async (endTime: number, noticedAt: number, scheduledPush: Promise<string | null>) => {
+    async (
+      endTime: number,
+      noticedAt: number,
+      scheduledPush: Promise<string | null>,
+    ) => {
       if (noticedAt - endTime > STALE_ALERT_MS) return;
       if ((await readPushReceipt(endTime)) !== null) return;
       // If a push was scheduled it shows the notification itself, so the page
@@ -155,19 +171,26 @@ export function useRestTimer() {
   }, [check]);
 
   // Called from the Log set tap: start, or reset if already running.
-  const start = useCallback(() => {
-    primeAudio(); // must happen inside the tap so iOS allows sound later
-    const t = Date.now();
-    const wasRunning = timerRef.current.status === "running";
-    const next = logSet(t);
-    if (next.status !== "running") return; // logSet always returns running
-    commitTimer(next);
-    setNow(t);
-    setRestOver(false);
-    track(wasRunning ? "timer_reset" : "timer_started");
-    void acquireWakeLock();
-    queuePush(next.endTime);
-  }, [commitTimer, queuePush]);
+  const start = useCallback(
+    (durationSeconds: number) => {
+      primeAudio(); // must happen inside the tap so iOS allows sound later
+      const t = Date.now();
+      const wasRunning = timerRef.current.status === "running";
+      const next = logSet(t, durationSeconds);
+      if (next.status !== "running") return; // logSet always returns running
+      commitTimer(next);
+      setNow(t);
+      setRestOver(false);
+      // rest_seconds is just a number (not personal data); it shows which rest
+      // lengths people really choose.
+      track(wasRunning ? "timer_reset" : "timer_started", {
+        rest_seconds: durationSeconds,
+      });
+      void acquireWakeLock();
+      queuePush(next.endTime);
+    },
+    [commitTimer, queuePush],
+  );
 
   // Ends the timer early and cancels its push. `dismissed` is true when the
   // user chose to (Stop button); false when we stopped it ourselves (a set

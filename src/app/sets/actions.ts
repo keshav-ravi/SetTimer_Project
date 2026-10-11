@@ -16,6 +16,7 @@ import {
   type ExerciseOption,
 } from "@/lib/sets/queries";
 import type { HistoryDay } from "@/lib/sets/history";
+import { getRestSeconds } from "@/lib/settings/queries";
 import { parseSetInput } from "@/lib/sets/validation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,6 +24,8 @@ export type DayState = {
   exercises: ExerciseOption[];
   sets: SetRow[];
   lastUsedExerciseId: string | null;
+  // The user's saved rest length, or null if none (or it could not be read).
+  restSeconds: number | null;
 };
 
 export type ActionResult<T> = ({ ok: true } & T) | { ok: false; error: string };
@@ -41,12 +44,22 @@ export async function loadDayState(
 
   try {
     const workoutId = await getWorkoutId(supabase, localDate);
-    const [exercises, sets, lastUsedExerciseId] = await Promise.all([
-      getExercises(supabase),
-      getSetsForWorkout(supabase, workoutId),
-      getLastUsedExerciseId(supabase),
-    ]);
-    return { ok: true, state: { exercises, sets, lastUsedExerciseId } };
+    const [exercises, sets, lastUsedExerciseId, restSeconds] =
+      await Promise.all([
+        getExercises(supabase),
+        getSetsForWorkout(supabase, workoutId),
+        getLastUsedExerciseId(supabase),
+        // Not essential: if the settings can't be read, the app falls back to
+        // the copy on the device (or the default) instead of failing.
+        getRestSeconds(supabase).catch((error) => {
+          console.error("getRestSeconds failed", error);
+          return null;
+        }),
+      ]);
+    return {
+      ok: true,
+      state: { exercises, sets, lastUsedExerciseId, restSeconds },
+    };
   } catch (error) {
     console.error("loadDayState failed", error);
     return { ok: false, error: "Could not load your data. Please try again." };

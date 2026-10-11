@@ -34,6 +34,7 @@ export default function PrivacyPage() {
           <li>
             The workouts and sets you log: the date, exercise, reps and weight.
           </li>
+          <li>Your rest-length setting.</li>
           <li>
             To send the rest alert to a locked phone, an address from your
             phone&apos;s browser. It stays on your phone and inside a short
@@ -80,8 +81,8 @@ export default function PrivacyPage() {
         <p className="text-base">
           We keep your data until you delete your account. To delete it, open{" "}
           <strong>Account</strong>, then <strong>Delete account</strong>. Your
-          username, password and every workout and set are removed right away,
-          and any pending rest alert is cancelled.
+          username, password, settings and every workout and set are removed
+          right away, and any pending rest alert is cancelled.
         </p>
         <p className="text-base">
           The usage events described above may stay in our analytics tool. They

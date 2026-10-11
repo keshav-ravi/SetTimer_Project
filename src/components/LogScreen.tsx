@@ -5,13 +5,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import DatePicker from "@/components/DatePicker";
 import DaySets from "@/components/DaySets";
+import RestLengthPicker from "@/components/RestLengthPicker";
 import RestTimer from "@/components/RestTimer";
 import SetupFlow from "@/components/SetupFlow";
+import { saveRestSeconds } from "@/app/settings/actions";
 import { deleteLastSet, loadDayState, logSet } from "@/app/sets/actions";
 import { track } from "@/lib/analytics";
 import { defaultsForExercise } from "@/lib/sets/defaults";
 import { formatWorkoutDate, localDateString } from "@/lib/sets/dates";
 import { formatSet, latestSet, type SetRow } from "@/lib/sets/group";
+import { parseRestSeconds } from "@/lib/settings/restDuration";
+import {
+  loadStoredRestSeconds,
+  saveStoredRestSeconds,
+} from "@/lib/settings/restStorage";
+import { DEFAULT_REST_SECONDS } from "@/lib/timer/timer";
 import { useRestTimer } from "@/lib/timer/useRestTimer";
 import type { ExerciseOption } from "@/lib/sets/queries";
 import { REPS_STEP, WEIGHT_STEP, stepValue } from "@/lib/sets/steppers";
@@ -103,6 +111,9 @@ export default function LogScreen({
     return initialDate && initialDate <= todayLocal ? initialDate : todayLocal;
   });
   const [today, setToday] = useState(() => localDateString(new Date()));
+  // The user's chosen rest length (Req 7) and whether its picker is open.
+  const [restSeconds, setRestSeconds] = useState(DEFAULT_REST_SECONDS);
+  const [restPickerOpen, setRestPickerOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [dayLoading, setDayLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -118,6 +129,8 @@ export default function LogScreen({
   // loadDay depend on it.
   const exerciseIdRef = useRef("");
   const firstDate = useRef(date);
+  // True once the rest length has been worked out (first load only).
+  const restResolved = useRef(false);
 
   // Loads one day: the exercise list, that day's sets, and the exercise to
   // preselect. Used on first load and whenever the date changes.
@@ -131,6 +144,17 @@ export default function LogScreen({
     setToday(localDateString(new Date()));
     setDayLoading(false);
     setLoaded(true);
+    // Work out the rest length once: the saved account value if we got it,
+    // otherwise the copy on this device (e.g. no signal), otherwise 90 seconds.
+    if (!restResolved.current) {
+      restResolved.current = true;
+      const saved = result.ok
+        ? parseRestSeconds(result.state.restSeconds)
+        : null;
+      const value = saved ?? loadStoredRestSeconds() ?? DEFAULT_REST_SECONDS;
+      setRestSeconds(value);
+      if (saved !== null) saveStoredRestSeconds(saved);
+    }
     if (!result.ok) {
       setMessage({ text: result.error, isError: true });
       return;
@@ -184,7 +208,7 @@ export default function LogScreen({
     const startsTimer = date === localDateString(new Date());
     // Start it right away, on the tap, without waiting for the network (gym
     // reception can be slow). If the save fails we stop it below.
-    if (startsTimer) restTimer.start();
+    if (startsTimer) restTimer.start(restSeconds);
     let result: Awaited<ReturnType<typeof logSet>>;
     try {
       result = await logSet({
@@ -216,6 +240,26 @@ export default function LogScreen({
     const count = result.sets.filter((s) => s.exerciseId === exerciseId).length;
     const where = startsTimer ? "" : ` for ${formatWorkoutDate(date, today)}`;
     setMessage({ text: `Set ${count} logged${where}.`, isError: false });
+  }
+
+  // The user picked a new rest length. It takes effect instantly on this
+  // device and is then saved to their account. A running timer is not touched:
+  // the new length is only used the next time a set is logged.
+  function handleRestChange(next: number) {
+    const valid = parseRestSeconds(next);
+    if (valid === null) return;
+    setRestSeconds(valid);
+    saveStoredRestSeconds(valid);
+    const syncFailed = () =>
+      setMessage({
+        text: "Saved on this device, but it could not be saved to your account.",
+        isError: true,
+      });
+    saveRestSeconds(valid)
+      .then((result) => {
+        if (!result.ok) syncFailed();
+      })
+      .catch(syncFailed);
   }
 
   async function handleDeleteLast() {
@@ -313,6 +357,14 @@ export default function LogScreen({
         />
       </div>
 
+      {restPickerOpen && (
+        <RestLengthPicker
+          seconds={restSeconds}
+          onChange={handleRestChange}
+          onClose={() => setRestPickerOpen(false)}
+        />
+      )}
+
       {/* Timer and primary action pinned to the bottom, reachable with one thumb. */}
       <div className="fixed inset-x-0 bottom-0 border-t border-black/10 bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-white/20">
         <RestTimer
@@ -320,6 +372,8 @@ export default function LogScreen({
           remainingMs={restTimer.remainingMs}
           restOver={restTimer.restOver}
           pushIssue={restTimer.pushIssue}
+          restSeconds={restSeconds}
+          onOpenRestLength={() => setRestPickerOpen(true)}
           onStop={restTimer.stop}
         />
         <button

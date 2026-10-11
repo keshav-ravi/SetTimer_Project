@@ -35,9 +35,7 @@ describe("parseSubscription", () => {
     expect(parseSubscription(null)).toBeNull();
     expect(parseSubscription("x")).toBeNull();
     expect(parseSubscription({ endpoint: goodSub.endpoint })).toBeNull();
-    expect(
-      parseSubscription({ ...goodSub, keys: { p256dh: "p" } }),
-    ).toBeNull();
+    expect(parseSubscription({ ...goodSub, keys: { p256dh: "p" } })).toBeNull();
   });
 });
 
@@ -55,10 +53,33 @@ describe("parseScheduleRequest", () => {
 
   it("passes the test flag through only when it is exactly true", () => {
     const parse = (test: unknown) =>
-      parseScheduleRequest({ subscription: goodSub, endTime: NOW + 5_000, test }, NOW);
+      parseScheduleRequest(
+        { subscription: goodSub, endTime: NOW + 5_000, test },
+        NOW,
+      );
     expect(parse(true)).toMatchObject({ ok: true, value: { test: true } });
     expect(parse("true")).toMatchObject({ ok: true, value: { test: false } });
     expect(parse(1)).toMatchObject({ ok: true, value: { test: false } });
+  });
+
+  it("accepts the longest rest (10 minutes) even with a little clock difference", () => {
+    for (const ahead of [10 * 60 * 1000, 10 * 60 * 1000 + 30_000]) {
+      expect(
+        parseScheduleRequest(
+          { subscription: goodSub, endTime: NOW + ahead },
+          NOW,
+        ).ok,
+      ).toBe(true);
+    }
+  });
+
+  it("rejects an end time beyond 15 minutes", () => {
+    expect(
+      parseScheduleRequest(
+        { subscription: goodSub, endTime: NOW + 16 * 60 * 1000 },
+        NOW,
+      ).ok,
+    ).toBe(false);
   });
 
   it("rejects an end time that is too far ahead", () => {

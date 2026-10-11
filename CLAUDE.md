@@ -6,7 +6,7 @@ SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) 
 
 ## Scope rules (read first)
 
-- The timer spike passed for iPhone and **P0 is complete**: the MVP is built and deployed (see "Current phase"). P1 and P2 items in `PRD.md` are off limits until I approve specific ones. The next planned item is P1 Req 7 (adjustable rest duration), once I approve it.
+- The timer spike passed for iPhone and **P0 is complete**: the MVP is built and deployed (see "Current phase"). P1 and P2 items in `PRD.md` are off limits until I approve specific ones. P1 Req 7 (adjustable rest duration) is done; we choose the next backlog item together (see `PRD.md` Section 18).
 - If a request is not in `PRD.md`, ask before building it.
 - Do not add dependencies without telling me why.
 - Non-goals: workout recommendations, calorie tracking, social features, native apps, auto-looping timers.
@@ -46,11 +46,11 @@ Why a server push: iOS freezes a web app's JavaScript when the phone is locked o
 
 - State is `idle` or `running`.
 - Store the **end timestamp**, never a decrementing counter. Compute remaining time from `endTime - Date.now()`.
-- `Log set` while idle: state = running, end = now + REST_SECONDS.
-- `Log set` while running: reset end = now + REST_SECONDS.
+- `Log set` while idle: state = running, end = now + the user's rest length (default 90 seconds).
+- `Log set` while running: reset end = now + the user's rest length.
 - End time reached: fire alert (sound, vibration, notification if permitted), set state = idle, do nothing else.
 - Manual stop: state = idle.
-- `REST_SECONDS = 90` is defined in exactly one place. The P1 adjustable-duration feature will replace this single value.
+- `DEFAULT_REST_SECONDS = 90` is defined in exactly one place. The user's chosen rest length (Req 7, 15 seconds to 10 minutes, saved per user) is passed into the pure timer rules as `logSet(now, durationSeconds)`; the rules never assume 90.
 - Keep timer logic in a pure, testable module separate from UI components. Write unit tests for every rule above.
 - Request notification permission only on a user action, never on page load.
 - Use the Wake Lock API while the timer is running, and handle the case where it is unsupported.

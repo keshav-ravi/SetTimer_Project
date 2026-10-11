@@ -2,22 +2,29 @@
 // every function receives `now` (milliseconds since 1970) as an argument,
 // so behavior is predictable and easy to unit test.
 
-// The ONE place the rest duration is defined. P1 (adjustable duration)
-// will replace this single value.
-export const REST_SECONDS = 90;
+// The rest length a user gets until they choose another (Req 7). This is the
+// ONE place the default is defined. The user's own choice is passed into
+// logSet below, so the rules never assume 90.
+export const DEFAULT_REST_SECONDS = 90;
+
+// The shortest and longest rest a user may choose. The database and the push
+// scheduling window use the same limits.
+export const MIN_REST_SECONDS = 15;
+export const MAX_REST_SECONDS = 600; // 10 minutes
 
 // A "discriminated union": the `status` field tells TypeScript which
 // other fields exist. Think of it like a tagged variant in Python.
 export type TimerState =
-  | { status: "idle" }
-  | { status: "running"; endTime: number };
+  { status: "idle" } | { status: "running"; endTime: number };
 
 export const IDLE: TimerState = { status: "idle" };
 
 // Log set: always (re)starts the countdown from now, whether the timer
-// was idle (start) or running (reset).
-export function logSet(now: number): TimerState {
-  return { status: "running", endTime: now + REST_SECONDS * 1000 };
+// was idle (start) or running (reset). `durationSeconds` is the user's chosen
+// rest length; it only takes effect at the moment of a start or reset, so a
+// timer that is already running is never changed by a new setting.
+export function logSet(now: number, durationSeconds: number): TimerState {
+  return { status: "running", endTime: now + durationSeconds * 1000 };
 }
 
 // Manual stop: back to idle.

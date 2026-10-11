@@ -17,8 +17,10 @@ const ALLOWED_PUSH_HOSTS = [
   "notify.windows.com",
 ];
 
-// Rest timers are 90s; allow generous headroom but not hours.
-const MAX_AHEAD_MS = 10 * 60 * 1000;
+// Rests are at most 10 minutes (MAX_REST_SECONDS). Allow 15 minutes ahead so
+// small differences between the phone's clock and ours never reject a
+// 10 minute rest, but not hours.
+const MAX_AHEAD_MS = 15 * 60 * 1000;
 const MAX_PAST_MS = 5 * 1000;
 
 function isAllowedEndpoint(endpoint: string): boolean {
@@ -63,15 +65,18 @@ export type ScheduleRequest = {
 };
 
 export type ParseResult =
-  | { ok: true; value: ScheduleRequest }
-  | { ok: false; error: string };
+  { ok: true; value: ScheduleRequest } | { ok: false; error: string };
 
 // Used by both /api/schedule (browser -> us) and /api/send (QStash -> us).
 export function parseScheduleRequest(body: unknown, now: number): ParseResult {
   if (typeof body !== "object" || body === null) {
     return { ok: false, error: "Body must be a JSON object." };
   }
-  const b = body as { subscription?: unknown; endTime?: unknown; test?: unknown };
+  const b = body as {
+    subscription?: unknown;
+    endTime?: unknown;
+    test?: unknown;
+  };
   const subscription = parseSubscription(b.subscription);
   if (!subscription) {
     return { ok: false, error: "Invalid or unsupported push subscription." };

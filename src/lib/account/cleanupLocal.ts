@@ -5,6 +5,7 @@
 
 import { resetAnalytics } from "@/lib/analytics";
 import { GUIDE_SEEN_KEY } from "@/lib/install/guideSeen";
+import { REST_STORAGE_KEY } from "@/lib/settings/restStorage";
 import { TIMER_STORAGE_KEY } from "@/lib/timer/storage";
 import { releaseWakeLock } from "@/lib/wakeLock";
 
@@ -20,6 +21,7 @@ export async function cleanupLocalData(): Promise<void> {
   try {
     localStorage.removeItem(TIMER_STORAGE_KEY);
     localStorage.removeItem(GUIDE_SEEN_KEY);
+    localStorage.removeItem(REST_STORAGE_KEY);
   } catch {
     // ignore
   }

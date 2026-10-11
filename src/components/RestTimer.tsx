@@ -3,19 +3,25 @@
 // The rest timer bar, shown just above the Log set button. Display only: all
 // the logic is in useRestTimer, and the rules are in timer.ts.
 import { formatRemaining } from "@/lib/timer/format";
-import { REST_SECONDS, type TimerState } from "@/lib/timer/timer";
+import { formatRestLength } from "@/lib/settings/restDuration";
+import type { TimerState } from "@/lib/timer/timer";
 
 export default function RestTimer({
   timer,
   remainingMs,
   restOver,
   pushIssue,
+  restSeconds,
+  onOpenRestLength,
   onStop,
 }: {
   timer: TimerState;
   remainingMs: number;
   restOver: boolean;
   pushIssue: string | null;
+  // The user's chosen rest length (Req 7) and a way to open the picker.
+  restSeconds: number;
+  onOpenRestLength: () => void;
   onStop: () => void;
 }) {
   if (timer.status === "running") {
@@ -52,15 +58,23 @@ export default function RestTimer({
     );
   }
 
-  // Idle: either the rest just ended, or nothing has been logged yet.
+  // Idle: either the rest just ended, or nothing has been logged yet. The
+  // button shows the chosen rest length and opens the picker.
   return (
-    <p
-      role="status"
-      className="mx-auto mb-3 w-full max-w-sm text-center text-sm font-medium opacity-80"
-    >
-      {restOver
-        ? "Rest over. Ready for your next set."
-        : `Timer starts when you log a set (${formatRemaining(REST_SECONDS * 1000)}).`}
-    </p>
+    <div className="mx-auto mb-3 flex w-full max-w-sm items-center justify-between gap-3">
+      <p role="status" className="text-sm font-medium opacity-80">
+        {restOver
+          ? "Rest over. Ready for your next set."
+          : "Timer starts when you log a set."}
+      </p>
+      <button
+        type="button"
+        onClick={onOpenRestLength}
+        aria-label={`Rest length ${formatRestLength(restSeconds)}. Tap to change.`}
+        className="min-h-11 shrink-0 rounded-lg bg-black/5 px-3 text-sm font-semibold dark:bg-white/10"
+      >
+        Rest: {formatRestLength(restSeconds)} ›
+      </button>
+    </div>
   );
 }
