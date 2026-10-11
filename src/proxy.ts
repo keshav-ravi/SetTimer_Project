@@ -1,6 +1,6 @@
 // Runs before every page request. It (1) refreshes the login cookies so the
 // session doesn't silently expire, and (2) sends signed-out visitors to
-// /login. It does NOT run for /api routes: QStash calls /api/send without a
+// /login (except the public /login and /privacy pages). It does NOT run for /api routes: QStash calls /api/send without a
 // login (that route checks QStash's signature instead), and the other API
 // routes check the user themselves.
 import { createServerClient } from "@supabase/ssr";
@@ -33,9 +33,12 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const onLoginPage = request.nextUrl.pathname === "/login";
+  const path = request.nextUrl.pathname;
+  const onLoginPage = path === "/login";
+  // The privacy note can be read without signing in.
+  const isPublic = onLoginPage || path === "/privacy";
   const redirectTo =
-    !user && !onLoginPage ? "/login" : user && onLoginPage ? "/" : null;
+    !user && !isPublic ? "/login" : user && onLoginPage ? "/" : null;
 
   if (redirectTo) {
     const redirect = NextResponse.redirect(new URL(redirectTo, request.url));

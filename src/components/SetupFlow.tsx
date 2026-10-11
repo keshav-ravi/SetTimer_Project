@@ -5,26 +5,8 @@
 // decided by nextSetupStep (pure, tested); this component only displays it.
 import { useCallback, useEffect, useState } from "react";
 import InstallGuide from "@/components/InstallGuide";
+import { hasSeenGuide, markGuideSeen } from "@/lib/install/guideSeen";
 import { useAlertsSetup } from "@/lib/install/useAlertsSetup";
-
-// Remembers that the install guide has been shown, so it only opens by itself once.
-const GUIDE_SEEN_KEY = "settimer-install-guide-seen-v1";
-
-function hasSeenGuide(): boolean {
-  try {
-    return localStorage.getItem(GUIDE_SEEN_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markGuideSeen(): void {
-  try {
-    localStorage.setItem(GUIDE_SEEN_KEY, "1");
-  } catch {
-    // Storage blocked: the guide may open again next time. That's acceptable.
-  }
-}
 
 const card =
   "rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm";

@@ -35,7 +35,13 @@ export default async function Home(props: PageProps<"/">) {
       <LogScreen initialDate={initialDate} />
 
       {/* Kept above the fixed Log set bar by the screen's bottom padding. */}
-      <footer className="flex items-center justify-end gap-2 pb-44 text-sm">
+      <footer className="flex items-center justify-between gap-2 pb-44 text-sm">
+        <Link
+          href="/account"
+          className="flex min-h-11 items-center px-1 font-medium underline"
+        >
+          Account
+        </Link>
         <form action={signOut}>
           <button type="submit" className="min-h-11 px-3 font-medium underline">
             Sign out

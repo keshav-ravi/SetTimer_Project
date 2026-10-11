@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** Draft v13 | **Last updated:** Oct 6, 2026
+**Author:** [Your name] | **Status:** Draft v14 | **Last updated:** Oct 6, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 ---
@@ -221,7 +221,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 - **PWA:** manifest and service worker for home-screen install. Required (P0) on iPhone, where push alerts only work in the installed app.
 - **Timer reliability:** Web apps are throttled in the background, and iOS web push requires home-screen install (iOS 16.4+). Use end-timestamp logic, the Wake Lock API while the timer runs, and test on a real iPhone in week 1.
 - **Locked-screen alerts (spike finding):** The page's own JavaScript is frozen when an iPhone is locked, so alerts at the end time must come from a server-sent Web Push. Current design: the app subscribes to push (VAPID keys), the server schedules a delayed call through Upstash QStash, and `/api/send` (signature-verified) sends the push with the `web-push` library. Required environment variables: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` (see `.env.example`). The push subscription is held only inside the scheduled message, not stored by us. Delivery time depends on Apple's push service and is what the spike measures.
-- **Privacy:** Supabase Row Level Security so users only access their own rows; collect minimum data; include delete-account and a plain-language privacy note.
+- **Privacy:** Supabase Row Level Security so users only access their own rows; collect minimum data; include delete-account and a plain-language privacy note. *(v14)* Delete account is on an Account page: the user re-enters their password, then their user, workouts and sets are deleted and any scheduled rest-timer push is cancelled. The privacy note is a public page with no contact line for now. PostHog events carry only a random user id; deleting them from PostHog is not automated in P0, and the privacy note says so.
 
 ## 14. Risks and Mitigations
 
@@ -263,6 +263,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 ## 17. Change Log
 
+- **v14:** Owner decisions for P0 slice 6 (delete account and privacy note): deleting an account requires re-entering the password; PostHog data is disclosed in the privacy note rather than deleted automatically; the privacy note shows no contact line for now (deletion is self-service in the app); the Account link sits next to Sign out.
 - **v13:** Owner decisions for P0 slice 5 (date and history, Req 2 and 6): the rest timer starts only for today's sets (an exception to 5a), future dates are blocked, the logging screen gets a date control and there is a History page listing the latest 30 workouts with Show more. Past dates can be logged to and the last set deleted.
 - **v12:** Owner decisions for P0 slice 4 (install flow, Req 10): auto-open the install guide once after sign-in on iPhone Safari; add a "Send test alert" button so users can verify alerts before relying on them; start with an initial app icon and iterate later. Android install prompts stay out of scope (Android is deferred).
 - **v11:** Owner decisions for P0 slice 2 (choose an exercise and log a set): pulled a minimal "delete last set" into P0 as Req 9a, because mistakes could not otherwise be fixed. The exercise picker is a native dropdown in P0; search is added as P1 Req 13. Prefill is limited to the latest set logged *today* for the same exercise (reps default 10, weight blank otherwise), so the P2 "prefill from last session" feature stays out. Weight is in pounds. A daily keep-alive request prevents the free Supabase project from pausing.

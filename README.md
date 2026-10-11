@@ -6,7 +6,7 @@ The product spec is in [`PRD.md`](PRD.md) (source of truth). Working rules for c
 
 ## Current status: P0 build in progress (spike passed for iPhone)
 
-The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in (username and password through Supabase Auth), choosing an exercise and logging a set, the rest timer, and the install-to-home-screen flow are done. history by date, and a date control are done. Next is delete account and the privacy note. See `PRD.md` and the plan in `CLAUDE.md`.
+The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in (username and password through Supabase Auth), choosing an exercise and logging a set, the rest timer, and the install-to-home-screen flow are done. history by date, and a date control are done. delete account, and the privacy note are done. That completes P0. See `PRD.md` and the plan in `CLAUDE.md`.
 
 ## The timer feasibility spike
 
@@ -63,6 +63,10 @@ Key design rules (from `CLAUDE.md`):
 | `src/components/{SetupFlow,InstallGuide}.tsx` | The setup card and the full-screen "Add to Home Screen" guide (Req 10) |
 | `scripts/generate-icons.mjs` | Regenerates the app icons into `public/` (`node scripts/generate-icons.mjs`) |
 | `src/lib/auth/username.ts` + tests | Username and password rules; maps a username to Supabase's internal address |
+| `src/app/account/*`, `src/components/DeleteAccount.tsx` | The Account page and delete-account flow (password re-checked on the server) |
+| `src/lib/account/*` + tests | Delete-request checks, and browser cleanup after deletion (unsubscribe push, clear saved data) |
+| `src/lib/supabase/admin.ts` | Server-only admin connection (service-role key), used only by delete account |
+| `src/app/privacy/page.tsx` | The plain-language privacy note (public) |
 | `src/lib/supabase/*`, `src/proxy.ts`, `src/app/login/*` | Supabase connections, the sign-in guard, and the login screen |
 | `src/lib/analytics.ts` | PostHog wrapper (user id only, no autocapture) |
 | `supabase/migrations/0001_init.sql` | Tables and Row Level Security (run once in the Supabase SQL editor) |
@@ -139,5 +143,6 @@ Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 
 7. **P0 slices:** sign-in, exercise picker and set logging with Row Level Security, and the rest timer inside the real flow. The spike page and its run log were retired (they remain in git history).
 8. **Install flow (Req 10):** a guided "Add to Home Screen" screen for iPhone, a one-tap "Turn on rest alerts" step in the installed app, help when notifications are blocked or iOS is too old, a test-alert button, and real app icons.
 9. **Date and history (Req 2, 6):** a date control on the logging screen (previous/next day and the native picker, no future dates), logging and deleting the last set on past days (the rest timer starts only for today), and a History page of past workouts.
+10. **Delete account and privacy note:** an Account page where the user re-enters their password to permanently delete their account, workouts and sets (any pending rest alert is cancelled), a public privacy note, and an Account link next to Sign out.
 
 See `git log` for the full detail, and `PRD.md` Section 17 for the spec change log.

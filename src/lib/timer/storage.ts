@@ -5,7 +5,8 @@
 
 import { IDLE, type TimerState } from "./timer";
 
-const KEY = "settimer-timer-v1";
+export const TIMER_STORAGE_KEY = "settimer-timer-v1";
+const KEY = TIMER_STORAGE_KEY;
 
 export type StoredTimer = {
   timer: TimerState;
