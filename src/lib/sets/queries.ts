@@ -125,3 +125,63 @@ export async function getHistory(
     .filter((day) => day.setCount > 0);
   return { days, hasMore };
 }
+
+// ---------------------------------------------------------------------------
+// Editing and deleting a set (Req 9). Each one is limited to a set inside the
+// given workout, so a set can only ever be changed on the day the user is
+// looking at, and Row Level Security still limits it to the user's own rows.
+// ---------------------------------------------------------------------------
+
+// Changes a set's exercise, reps and weight (never its workout or its time,
+// so the numbering of sets stays stable). Returns false if no such set exists
+// in that workout, for example because it was already deleted elsewhere.
+export async function updateSetInWorkout(
+  supabase: SupabaseClient,
+  workoutId: string,
+  setId: string,
+  values: { exerciseId: string; reps: number; weightLb: number },
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("sets")
+    .update({
+      exercise_id: values.exerciseId,
+      reps: values.reps,
+      weight_lb: values.weightLb,
+    })
+    .eq("id", setId)
+    .eq("workout_id", workoutId)
+    .select("id");
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+// Deletes one set. Returns false if no such set exists in that workout.
+export async function deleteSetInWorkout(
+  supabase: SupabaseClient,
+  workoutId: string,
+  setId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("sets")
+    .delete()
+    .eq("id", setId)
+    .eq("workout_id", workoutId)
+    .select("id");
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+// If a workout has no sets left, remove it too, so History never shows a
+// blank day.
+export async function deleteWorkoutIfEmpty(
+  supabase: SupabaseClient,
+  workoutId: string,
+): Promise<void> {
+  const remaining = await getSetsForWorkout(supabase, workoutId);
+  if (remaining.length > 0) return;
+  const { error } = await supabase
+    .from("workouts")
+    .delete()
+    .eq("id", workoutId);
+  if (error) throw error;
+}

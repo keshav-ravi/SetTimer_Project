@@ -7,9 +7,17 @@ import DatePicker from "@/components/DatePicker";
 import DaySets from "@/components/DaySets";
 import RestLengthPicker from "@/components/RestLengthPicker";
 import RestTimer from "@/components/RestTimer";
+import SetEditor from "@/components/SetEditor";
 import SetupFlow from "@/components/SetupFlow";
+import Stepper from "@/components/Stepper";
 import { saveRestSeconds } from "@/app/settings/actions";
-import { deleteLastSet, loadDayState, logSet } from "@/app/sets/actions";
+import {
+  deleteLastSet,
+  deleteSet,
+  loadDayState,
+  logSet,
+  updateSet,
+} from "@/app/sets/actions";
 import { track } from "@/lib/analytics";
 import { defaultsForExercise } from "@/lib/sets/defaults";
 import { formatWorkoutDate, localDateString } from "@/lib/sets/dates";
@@ -22,7 +30,8 @@ import {
 import { DEFAULT_REST_SECONDS } from "@/lib/timer/timer";
 import { useRestTimer } from "@/lib/timer/useRestTimer";
 import type { ExerciseOption } from "@/lib/sets/queries";
-import { REPS_STEP, WEIGHT_STEP, stepValue } from "@/lib/sets/steppers";
+import type { SetDraft } from "@/lib/sets/edit";
+import { REPS_STEP, WEIGHT_STEP } from "@/lib/sets/steppers";
 import {
   REPS_MAX,
   REPS_MIN,
@@ -33,63 +42,6 @@ import {
 
 // Shown when a request fails outright (for example no signal at the gym).
 const NETWORK_ERROR = "No connection. Check your signal and try again.";
-
-// A number box with - and + buttons (both at least 44px tall for thumbs).
-function Stepper({
-  label,
-  value,
-  onChange,
-  step,
-  min,
-  max,
-  unit,
-  inputMode,
-}: {
-  label: string;
-  value: string;
-  onChange: (next: string) => void;
-  step: number;
-  min: number;
-  max: number;
-  unit?: string;
-  inputMode: "numeric" | "decimal";
-}) {
-  const button =
-    "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-black/5 text-2xl font-semibold dark:bg-white/10";
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium">
-        {label}
-        {unit ? ` (${unit})` : ""}
-      </span>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          aria-label={`Decrease ${label}`}
-          onClick={() => onChange(stepValue(value, -step, min, max))}
-          className={button}
-        >
-          −
-        </button>
-        <input
-          aria-label={label}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          inputMode={inputMode}
-          className="h-14 min-w-0 flex-1 rounded-lg border border-black/20 bg-transparent px-3 text-center text-2xl font-semibold dark:border-white/30"
-        />
-        <button
-          type="button"
-          aria-label={`Increase ${label}`}
-          onClick={() => onChange(stepValue(value, step, min, max))}
-          className={button}
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function LogScreen({
   initialDate,
@@ -117,6 +69,14 @@ export default function LogScreen({
   const [loaded, setLoaded] = useState(false);
   const [dayLoading, setDayLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  // The set being edited (Req 9), its number within its exercise, and the
+  // state of the Edit set panel.
+  const [editing, setEditing] = useState<{
+    set: SetRow;
+    number: number;
+  } | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [message, setMessage] = useState<{
     text: string;
     isError: boolean;
@@ -262,6 +222,78 @@ export default function LogScreen({
       .catch(syncFailed);
   }
 
+  function openEditor(set: SetRow, number: number) {
+    setEditError(null);
+    setEditing({ set, number });
+  }
+
+  function closeEditor() {
+    setEditing(null);
+    setEditError(null);
+  }
+
+  // The set was changed or deleted somewhere else (another device or tab), so
+  // close the panel and reload the day.
+  function handleSetGone() {
+    closeEditor();
+    setMessage({ text: "That set no longer exists.", isError: true });
+    void loadDay(date);
+  }
+
+  // Req 9: save changes to a set. The rest timer is never touched.
+  async function handleSaveEdit(draft: SetDraft) {
+    if (!editing) return;
+    setEditBusy(true);
+    setEditError(null);
+    let result: Awaited<ReturnType<typeof updateSet>>;
+    try {
+      result = await updateSet({
+        setId: editing.set.id,
+        exerciseId: draft.exerciseId,
+        reps: draft.reps,
+        weight: draft.weight,
+        localDate: date,
+      });
+    } catch {
+      result = { ok: false, error: NETWORK_ERROR };
+    } finally {
+      setEditBusy(false);
+    }
+    if (!result.ok) {
+      if (result.gone) handleSetGone();
+      else setEditError(result.error); // the panel stays open, nothing is lost
+      return;
+    }
+    setSets(result.sets);
+    track("set_edited"); // no values are sent, only the event
+    closeEditor();
+    setMessage({ text: "Set updated.", isError: false });
+  }
+
+  // Req 9: delete any set. The rest timer is never touched.
+  async function handleDeleteEdit() {
+    if (!editing) return;
+    setEditBusy(true);
+    setEditError(null);
+    let result: Awaited<ReturnType<typeof deleteSet>>;
+    try {
+      result = await deleteSet({ setId: editing.set.id, localDate: date });
+    } catch {
+      result = { ok: false, error: NETWORK_ERROR };
+    } finally {
+      setEditBusy(false);
+    }
+    if (!result.ok) {
+      if (result.gone) handleSetGone();
+      else setEditError(result.error);
+      return;
+    }
+    setSets(result.sets);
+    track("set_deleted");
+    closeEditor();
+    setMessage({ text: "Set deleted.", isError: false });
+  }
+
   async function handleDeleteLast() {
     const last = latestSet(sets);
     if (!last) return;
@@ -353,9 +385,25 @@ export default function LogScreen({
           sets={sets}
           loading={dayLoading}
           onDeleteLast={handleDeleteLast}
+          onEdit={openEditor}
           busy={busy}
         />
       </div>
+
+      {editing && (
+        <SetEditor
+          // A new key per set makes the panel start fresh for each set.
+          key={editing.set.id}
+          set={editing.set}
+          setNumber={editing.number}
+          exercises={exercises}
+          busy={editBusy}
+          error={editError}
+          onSave={handleSaveEdit}
+          onDelete={handleDeleteEdit}
+          onClose={closeEditor}
+        />
+      )}
 
       {restPickerOpen && (
         <RestLengthPicker

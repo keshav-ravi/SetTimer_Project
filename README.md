@@ -59,7 +59,8 @@ Key design rules (from `CLAUDE.md`):
 | `src/app/api/{schedule,cancel,send}/route.ts` | Schedule and cancel the push (sign-in required) and send it (QStash only) |
 | `src/lib/sets/*` + tests | Pure rules for sets: validation, grouping, same-day defaults, steppers, date math and labels, history summaries; plus server queries |
 | `src/app/sets/actions.ts` | Server actions: load today, log a set, delete the last set |
-| `src/components/{LogScreen,RestTimer,DaySets,DatePicker}.tsx` | The logging screen, the timer bar, the chosen day's sets and the date control |
+| `src/components/{LogScreen,RestTimer,DaySets,DatePicker,Stepper}.tsx` | The logging screen, the timer bar, the chosen day's sets, the date control and the shared -/+ box |
+| `src/components/SetEditor.tsx`, `src/lib/sets/edit.ts` + tests | The Edit set panel (Req 9) and its pure validation ("is this a valid change?") |
 | `src/app/history/page.tsx`, `src/components/HistoryList.tsx` | The History page: past workouts newest first, 30 at a time, tapping one opens that day |
 | `src/lib/install/*` + tests | Install flow logic: device detection (iPhone, installed or not) and which setup card to show; `useAlertsSetup` turns alerts on and sends a test alert |
 | `src/components/{SetupFlow,InstallGuide}.tsx` | The setup card and the full-screen "Add to Home Screen" guide (Req 10) |
@@ -157,5 +158,6 @@ Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 
 9. **Date and history (Req 2, 6):** a date control on the logging screen (previous/next day and the native picker, no future dates), logging and deleting the last set on past days (the rest timer starts only for today), and a History page of past workouts.
 10. **Delete account and privacy note:** an Account page where the user re-enters their password to permanently delete their account, workouts and sets (any pending rest alert is cancelled), a public privacy note, and an Account link next to Sign out.
 11. **Adjustable rest length (Req 7):** a "Rest: 1:30" button in the timer bar opens presets (1:00 to 3:00) and ±15 second buttons, 15 seconds to 10 minutes, saved per user (`supabase/migrations/0002_user_settings.sql`) with a copy on the device. A running timer is never changed.
+12. **Edit and delete any set (Req 9):** tapping a set opens an Edit set panel (exercise, weight, reps, or delete with an inline confirmation); Save is only offered when something changed; the rest timer is never touched.
 
 See `git log` for the full detail, and `PRD.md` Section 17 for the spec change log.

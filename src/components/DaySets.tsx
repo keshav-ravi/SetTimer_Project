@@ -1,6 +1,7 @@
 "use client";
 
-// The chosen day's sets, grouped by exercise, with the "delete last set" button
+// The chosen day's sets, grouped by exercise. Each row can be tapped to edit
+// or delete that set (Req 9), and "Delete last set" is the one-tap undo
 // (Req 9a).
 import {
   formatSet,
@@ -14,12 +15,14 @@ export default function DaySets({
   sets,
   loading,
   onDeleteLast,
+  onEdit,
   busy,
 }: {
   title: string; // "Today", "Yesterday", "Sun, Oct 11"...
   sets: SetRow[];
   loading: boolean;
   onDeleteLast: () => void;
+  onEdit: (set: SetRow, setNumber: number) => void;
   busy: boolean;
 }) {
   const groups = groupSetsByExercise(sets);
@@ -58,7 +61,20 @@ export default function DaySets({
               <ol className="mt-1 text-sm">
                 {group.sets.map((set, index) => (
                   <li key={set.id}>
-                    Set {index + 1}: {formatSet(set)}
+                    <button
+                      type="button"
+                      onClick={() => onEdit(set, index + 1)}
+                      disabled={busy}
+                      aria-label={`Edit ${group.exerciseName} set ${index + 1}: ${formatSet(set)}`}
+                      className="flex min-h-11 w-full items-center justify-between rounded-md px-1 text-left disabled:opacity-60"
+                    >
+                      <span>
+                        Set {index + 1}: {formatSet(set)}
+                      </span>
+                      <span aria-hidden="true" className="pl-2 opacity-50">
+                        ›
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ol>

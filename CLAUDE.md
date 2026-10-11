@@ -64,7 +64,7 @@ Why a server push: iOS freezes a web app's JavaScript when the phone is locked o
 
 ## Analytics events (PostHog)
 
-Track these from the start: `sign_up`, `workout_started`, `set_logged`, `timer_started`, `timer_completed`, `timer_dismissed`, `timer_reset`. Do not send personal data in event properties beyond the user id.
+Track these from the start: `sign_up`, `workout_started`, `set_logged`, `timer_started`, `timer_completed`, `timer_dismissed`, `timer_reset`. Added later: `set_edited` and `set_deleted`. Do not send personal data in event properties beyond the user id.
 
 ## Workflow
 

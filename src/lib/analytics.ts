@@ -9,6 +9,8 @@ export type AnalyticsEvent =
   | "sign_up"
   | "workout_started"
   | "set_logged"
+  | "set_edited"
+  | "set_deleted"
   | "timer_started"
   | "timer_completed"
   | "timer_dismissed"
