@@ -8,24 +8,15 @@
 // LogScreen calls useRestTimer() and gets back the timer plus start/stop.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  fireAlert,
-  getNotificationPermission,
-  primeAudio,
-  requestNotificationPermission,
-} from "@/lib/alerts";
+import { fireAlert, primeAudio } from "@/lib/alerts";
 import { track } from "@/lib/analytics";
 import {
   cancelPush,
-  hasPushSubscription,
-  isPushSupported,
   pruneOldReceipts,
   readPushReceipt,
   schedulePush,
-  subscribeToPush,
 } from "@/lib/push/client";
 import { acquireWakeLock, releaseWakeLock } from "@/lib/wakeLock";
-import { alertsStatus, type AlertsStatus } from "./alertsStatus";
 import { loadStoredTimer, saveStoredTimer } from "./storage";
 import { IDLE, getRemainingMs, logSet, stop as stopRules, tick, type TimerState } from "./timer";
 
@@ -39,7 +30,6 @@ export function useRestTimer() {
   // True after the timer ran out, until the next start or stop. The timer is
   // idle then; this only drives the "Rest over" message.
   const [restOver, setRestOver] = useState(false);
-  const [alerts, setAlerts] = useState<AlertsStatus>("checking");
   const [pushIssue, setPushIssue] = useState<string | null>(null);
 
   // Refs hold the latest values so the interval callback never reads a stale
@@ -63,18 +53,6 @@ export function useRestTimer() {
     },
     [persist],
   );
-
-  // Looks at the browser to decide what the alerts notice should say.
-  const refreshAlerts = useCallback(async () => {
-    const subscribed = await hasPushSubscription();
-    setAlerts(
-      alertsStatus({
-        pushSupported: isPushSupported(),
-        permission: getNotificationPermission(),
-        subscribed,
-      }),
-    );
-  }, []);
 
   // Pushes are ordered through the chain: cancel the previous one (if any),
   // then schedule the next (if a new end time was given).
@@ -154,7 +132,6 @@ export function useRestTimer() {
       });
     }
     void pruneOldReceipts();
-    void refreshAlerts();
     if (saved.timer.status === "running") {
       void acquireWakeLock();
     }
@@ -162,12 +139,10 @@ export function useRestTimer() {
 
     // When the user comes back to the app: catch up at once (timers are
     // throttled while hidden), re-take the Wake Lock (the browser drops it
-    // whenever the page is hidden) and re-check the alert settings (they may
-    // have been changed in iOS Settings).
+    // whenever the page is hidden).
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
       check();
-      void refreshAlerts();
       if (timerRef.current.status === "running") void acquireWakeLock();
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -177,7 +152,7 @@ export function useRestTimer() {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pageshow", onVisible);
     };
-  }, [check, refreshAlerts]);
+  }, [check]);
 
   // Called from the Log set tap: start, or reset if already running.
   const start = useCallback(() => {
@@ -211,24 +186,13 @@ export function useRestTimer() {
   const stop = useCallback(() => endEarly(true), [endEarly]);
   const cancel = useCallback(() => endEarly(false), [endEarly]);
 
-  // Interim "turn on alerts" action (slice 4 replaces it with the guided
-  // install flow). Must be called from a tap: iOS only allows the permission
-  // prompt then.
-  const enableAlerts = useCallback(async () => {
-    const permission = await requestNotificationPermission();
-    if (permission === "granted") await subscribeToPush();
-    await refreshAlerts();
-  }, [refreshAlerts]);
-
   return {
     timer,
     remainingMs: getRemainingMs(timer, now),
     restOver,
-    alerts,
     pushIssue,
     start,
     stop,
     cancel,
-    enableAlerts,
   };
 }

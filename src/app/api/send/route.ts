@@ -34,7 +34,11 @@ export async function POST(request: Request) {
   // Re-check the subscription (defense in depth). We do NOT re-check the end
   // time window: by now the end time is "now", and a late QStash delivery
   // must not cause the push to be dropped.
-  const payload = json as { subscription?: unknown; endTime?: unknown } | null;
+  const payload = json as {
+    subscription?: unknown;
+    endTime?: unknown;
+    test?: unknown;
+  } | null;
   const subscription = parseSubscription(payload?.subscription);
   const endTime = payload?.endTime;
   if (!subscription || typeof endTime !== "number") {
@@ -53,7 +57,7 @@ export async function POST(request: Request) {
   try {
     await webpush.sendNotification(
       subscription,
-      JSON.stringify({ endTime }),
+      JSON.stringify({ endTime, test: payload?.test === true }),
       // "high" asks the push service to deliver immediately. TTL is how long
       // it may hold the message if the phone is unreachable.
       { TTL: 120, urgency: "high" },

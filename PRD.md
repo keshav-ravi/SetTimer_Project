@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** Draft v11 | **Last updated:** Oct 6, 2026
+**Author:** [Your name] | **Status:** Draft v12 | **Last updated:** Oct 6, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 ---
@@ -74,7 +74,7 @@ Supporting signals: sets logged per session; timer dismiss rate; timer reset rat
    - 5f. *(Added v9, from the spike.)* The alert must reach the user while the phone is locked or another app is open. On iPhone this requires a server-scheduled Web Push to the installed app: logging a set schedules the push, and reset or stop cancels it. The page's own alert covers the foreground. See Section 12.
 6. **History:** View past workouts by date.
 9a. **Delete the last set** *(minimal part of Req 9, pulled into P0 in v11)*. A logged set cannot otherwise be corrected in P0, so the user can delete their most recent set from today's list. General editing and deleting of any set stays P1 (Req 9). Deleting a set does not start, stop or reset the timer.
-10. **Install-to-home-screen (PWA) flow.** *(Moved from P1 to P0 in v9 because of the spike: on iPhone, alerts only work in the installed app.)* Guide iPhone users through "Add to Home Screen" before the timer is relied on, ask for notification permission from inside the installed app on a user tap, and explain clearly when notifications are blocked. Number kept as 10 so references stay valid.
+10. **Install-to-home-screen (PWA) flow.** *(Moved from P1 to P0 in v9 because of the spike: on iPhone, alerts only work in the installed app.)* Guide iPhone users through "Add to Home Screen" before the timer is relied on, ask for notification permission from inside the installed app on a user tap, and explain clearly when notifications are blocked. Number kept as 10 so references stay valid. *(v12)* The flow includes a guided install screen shown once after sign-in on iPhone Safari (dismissible, with a card that stays until the app is installed), a one-tap "Turn on rest alerts" step inside the installed app, plain-language help when notifications are blocked or iOS is too old (16.4 or later is needed), and a "Send test alert" button that sends a notification about 5 seconds later so users can confirm setup works before their first workout.
 
 ### P1
 
@@ -263,6 +263,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 ## 17. Change Log
 
+- **v12:** Owner decisions for P0 slice 4 (install flow, Req 10): auto-open the install guide once after sign-in on iPhone Safari; add a "Send test alert" button so users can verify alerts before relying on them; start with an initial app icon and iterate later. Android install prompts stay out of scope (Android is deferred).
 - **v11:** Owner decisions for P0 slice 2 (choose an exercise and log a set): pulled a minimal "delete last set" into P0 as Req 9a, because mistakes could not otherwise be fixed. The exercise picker is a native dropdown in P0; search is added as P1 Req 13. Prefill is limited to the latest set logged *today* for the same exercise (reps default 10, weight blank otherwise), so the P2 "prefill from last session" feature stays out. Weight is in pounds. A daily keep-alive request prevents the free Supabase project from pausing.
 - **v10:** Owner decision: replaced magic link / Google sign-in (Req 1) with username and password. No email is collected, which also reduces data held. P0 has no password recovery, recorded as a limitation. Implementation choice (Supabase Auth with a username mapped to an internal address) is in the P0 plan, not the PRD.
 - **v9:** Owner decision: the timer spike is **passed for iPhone**. Moved PWA install (Req 10) from P1 to P0. Added Req 5f (server-scheduled push alert, part of the P0 timer) and removed the spike-finding note from 5b. Added an install step to the core flow, a user story, a risk row, and a PWA technical note. Answered the iOS open question. Android remains untested and is not a P0 gate. P0 build may start after the owner approves the plan.

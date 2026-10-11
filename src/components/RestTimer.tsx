@@ -9,33 +9,46 @@ export default function RestTimer({
   timer,
   remainingMs,
   restOver,
+  pushIssue,
   onStop,
 }: {
   timer: TimerState;
   remainingMs: number;
   restOver: boolean;
+  pushIssue: string | null;
   onStop: () => void;
 }) {
   if (timer.status === "running") {
     return (
-      <div className="mx-auto mb-3 flex w-full max-w-sm items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide opacity-70">
-            Rest
-          </p>
-          {/* tabular-nums keeps the digits the same width so the text doesn't jiggle */}
-          <p className="text-4xl font-bold tabular-nums" aria-label={`${formatRemaining(remainingMs)} remaining`}>
-            {formatRemaining(remainingMs)}
-          </p>
+      <>
+        <div className="mx-auto mb-3 flex w-full max-w-sm items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide opacity-70">
+              Rest
+            </p>
+            {/* tabular-nums keeps the digits the same width so the text doesn't jiggle */}
+            <p
+              className="text-4xl font-bold tabular-nums"
+              aria-label={`${formatRemaining(remainingMs)} remaining`}
+            >
+              {formatRemaining(remainingMs)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onStop}
+            className="h-12 min-w-24 rounded-lg bg-black/10 px-4 text-base font-semibold dark:bg-white/15"
+          >
+            Stop
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onStop}
-          className="h-12 min-w-24 rounded-lg bg-black/10 px-4 text-base font-semibold dark:bg-white/15"
-        >
-          Stop
-        </button>
-      </div>
+        {pushIssue && (
+          <p className="mx-auto mb-3 w-full max-w-sm text-xs opacity-70">
+            Lock-screen alert could not be scheduled ({pushIssue}). You will
+            still get alerts with the app open.
+          </p>
+        )}
+      </>
     );
   }
 

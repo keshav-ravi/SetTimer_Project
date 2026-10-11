@@ -17,8 +17,11 @@ self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim(
 self.addEventListener("push", (event) => {
   const receivedAt = Date.now();
   let endTime = null;
+  let isTest = false;
   try {
-    endTime = event.data ? event.data.json().endTime : null;
+    const payload = event.data ? event.data.json() : {};
+    endTime = typeof payload.endTime === "number" ? payload.endTime : null;
+    isTest = payload.test === true;
   } catch {
     // Payload wasn't JSON; still show the notification.
   }
@@ -27,16 +30,17 @@ self.addEventListener("push", (event) => {
     (async () => {
       // 1. Record when the push arrived, so the page can log the real lag
       //    even if it was frozen when this happened.
-      if (endTime !== null) {
+      if (endTime !== null && !isTest) {
         const cache = await caches.open(RECEIPT_CACHE);
         await cache.put(`/push-received/${endTime}`, new Response(String(receivedAt)));
       }
       // 2. Show the alert. Same tag as the in-page alert, so the two replace
       //    each other instead of stacking. renotify makes a replacement still
       //    make a sound.
-      await self.registration.showNotification("Rest over", {
-        body: "Time for your next set.",
-        tag: "settimer-rest",
+      await self.registration.showNotification(isTest ? "Test alert" : "Rest over", {
+        body: isTest ? "Rest alerts are working." : "Time for your next set.",
+        // A separate tag for tests so one never replaces a real rest alert.
+        tag: isTest ? "settimer-test" : "settimer-rest",
         renotify: true,
       });
       // 3. If the page is alive, tell it right away.

@@ -63,7 +63,10 @@ export type ScheduleResult =
   | { messageId?: undefined; error: string };
 
 // Asks our server to push at `endTime`.
-export async function schedulePush(endTime: number): Promise<ScheduleResult> {
+export async function schedulePush(
+  endTime: number,
+  options: { test?: boolean } = {},
+): Promise<ScheduleResult> {
   try {
     if (!isPushSupported()) return { error: "push unsupported in this browser" };
     const subscription = await getSubscription();
@@ -73,7 +76,11 @@ export async function schedulePush(endTime: number): Promise<ScheduleResult> {
     const response = await fetch("/api/schedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subscription: subscription.toJSON(), endTime }),
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        endTime,
+        test: options.test === true,
+      }),
     });
     const data = (await response.json().catch(() => ({}))) as {
       messageId?: string;

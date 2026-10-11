@@ -49,8 +49,16 @@ describe("parseScheduleRequest", () => {
     );
     expect(result).toEqual({
       ok: true,
-      value: { subscription: goodSub, endTime: NOW + 90_000 },
+      value: { subscription: goodSub, endTime: NOW + 90_000, test: false },
     });
+  });
+
+  it("passes the test flag through only when it is exactly true", () => {
+    const parse = (test: unknown) =>
+      parseScheduleRequest({ subscription: goodSub, endTime: NOW + 5_000, test }, NOW);
+    expect(parse(true)).toMatchObject({ ok: true, value: { test: true } });
+    expect(parse("true")).toMatchObject({ ok: true, value: { test: false } });
+    expect(parse(1)).toMatchObject({ ok: true, value: { test: false } });
   });
 
   it("rejects an end time that is too far ahead", () => {

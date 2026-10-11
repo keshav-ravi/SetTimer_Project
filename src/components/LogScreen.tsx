@@ -3,8 +3,8 @@
 // The main logging screen: pick an exercise, enter reps and weight, tap
 // "Log set". The timer is added in a later slice; this slice only saves sets.
 import { useEffect, useState } from "react";
-import AlertsNotice from "@/components/AlertsNotice";
 import RestTimer from "@/components/RestTimer";
+import SetupFlow from "@/components/SetupFlow";
 import TodaySets from "@/components/TodaySets";
 import { deleteLastSet, loadTodayState, logSet } from "@/app/sets/actions";
 import { track } from "@/lib/analytics";
@@ -256,11 +256,7 @@ export default function LogScreen() {
           {message?.text}
         </p>
 
-        <AlertsNotice
-          status={restTimer.alerts}
-          pushIssue={restTimer.pushIssue}
-          onEnable={restTimer.enableAlerts}
-        />
+        <SetupFlow />
 
         <TodaySets sets={sets} onDeleteLast={handleDeleteLast} busy={busy} />
       </div>
@@ -271,6 +267,7 @@ export default function LogScreen() {
           timer={restTimer.timer}
           remainingMs={restTimer.remainingMs}
           restOver={restTimer.restOver}
+          pushIssue={restTimer.pushIssue}
           onStop={restTimer.stop}
         />
         <button

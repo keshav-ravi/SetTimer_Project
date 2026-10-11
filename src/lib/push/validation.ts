@@ -57,6 +57,9 @@ export function parseSubscription(value: unknown): PushSubscriptionJson | null {
 export type ScheduleRequest = {
   subscription: PushSubscriptionJson;
   endTime: number; // ms since 1970
+  // True for the "Send test alert" button, so the phone shows a clearly
+  // labelled test notification instead of "Rest over".
+  test: boolean;
 };
 
 export type ParseResult =
@@ -68,7 +71,7 @@ export function parseScheduleRequest(body: unknown, now: number): ParseResult {
   if (typeof body !== "object" || body === null) {
     return { ok: false, error: "Body must be a JSON object." };
   }
-  const b = body as { subscription?: unknown; endTime?: unknown };
+  const b = body as { subscription?: unknown; endTime?: unknown; test?: unknown };
   const subscription = parseSubscription(b.subscription);
   if (!subscription) {
     return { ok: false, error: "Invalid or unsupported push subscription." };
@@ -79,5 +82,8 @@ export function parseScheduleRequest(body: unknown, now: number): ParseResult {
   if (b.endTime < now - MAX_PAST_MS || b.endTime > now + MAX_AHEAD_MS) {
     return { ok: false, error: "endTime is outside the allowed window." };
   }
-  return { ok: true, value: { subscription, endTime: b.endTime } };
+  return {
+    ok: true,
+    value: { subscription, endTime: b.endTime, test: b.test === true },
+  };
 }

@@ -6,7 +6,7 @@ The product spec is in [`PRD.md`](PRD.md) (source of truth). Working rules for c
 
 ## Current status: P0 build in progress (spike passed for iPhone)
 
-The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in (username and password through Supabase Auth), choosing an exercise and logging a set, and the rest timer are done. Next are the install-to-home-screen flow, history by date, and delete account. See `PRD.md` and the plan in `CLAUDE.md`.
+The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in (username and password through Supabase Auth), choosing an exercise and logging a set, the rest timer, and the install-to-home-screen flow are done. Next are history by date and delete account. See `PRD.md` and the plan in `CLAUDE.md`.
 
 ## The timer feasibility spike
 
@@ -57,14 +57,17 @@ Key design rules (from `CLAUDE.md`):
 | `src/app/api/{schedule,cancel,send}/route.ts` | Schedule and cancel the push (sign-in required) and send it (QStash only) |
 | `src/lib/sets/*` + tests | Pure rules for sets: validation, grouping, today-only defaults, steppers, dates; plus server queries |
 | `src/app/sets/actions.ts` | Server actions: load today, log a set, delete the last set |
-| `src/components/{LogScreen,RestTimer,AlertsNotice,TodaySets}.tsx` | The logging screen, timer bar, alerts notice and today's list |
+| `src/components/{LogScreen,RestTimer,TodaySets}.tsx` | The logging screen, the timer bar and today's list |
+| `src/lib/install/*` + tests | Install flow logic: device detection (iPhone, installed or not) and which setup card to show; `useAlertsSetup` turns alerts on and sends a test alert |
+| `src/components/{SetupFlow,InstallGuide}.tsx` | The setup card and the full-screen "Add to Home Screen" guide (Req 10) |
+| `scripts/generate-icons.mjs` | Regenerates the app icons into `public/` (`node scripts/generate-icons.mjs`) |
 | `src/lib/auth/username.ts` + tests | Username and password rules; maps a username to Supabase's internal address |
 | `src/lib/supabase/*`, `src/proxy.ts`, `src/app/login/*` | Supabase connections, the sign-in guard, and the login screen |
 | `src/lib/analytics.ts` | PostHog wrapper (user id only, no autocapture) |
 | `supabase/migrations/0001_init.sql` | Tables and Row Level Security (run once in the Supabase SQL editor) |
 | `src/app/api/keepalive/route.ts`, `vercel.json` | Daily ping so the free Supabase project does not pause |
 | `public/sw.js` | Service worker: shows push notifications, records arrival time |
-| `public/manifest.webmanifest`, `public/*.png` | PWA install files and placeholder icons |
+| `public/manifest.webmanifest`, `public/*.png` | PWA install files and the app icons (initial design; edit the script above to change it) |
 
 ## Run it locally
 
@@ -103,7 +106,7 @@ Copy `.env.example` to `.env.local` for local development, and add the same name
 1. Import this GitHub repo in Vercel (Next.js defaults, no config needed).
 2. Add the environment variables above.
 3. Every push to `main` redeploys automatically. After changing variables, redeploy manually.
-4. On an iPhone, open the production URL in Safari, Share, **Add to Home Screen**, open from the icon, then tap **Enable notifications**. iOS only allows push in the installed app (iOS 16.4+).
+4. On an iPhone, open the production URL in Safari. The app shows an install guide: Share, **Add to Home Screen**, then open it from the icon (you sign in once more there, because the installed app keeps its own login) and tap **Turn on rest alerts**. iOS only allows push in the installed app (iOS 16.4+). **Send a test alert** confirms it works.
 
 ## Running the official test matrix (results below)
 
@@ -133,5 +136,6 @@ Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 
 5. **Debugging the push path:** surfaced the real reason when scheduling or signature checks failed, fixed a signature check that rejected padded hashes, and removed duplicate notifications.
 6. **Test timer:** shortened temporarily for quick testing, then restored to 90 seconds.
 7. **P0 slices:** sign-in, exercise picker and set logging with Row Level Security, and the rest timer inside the real flow. The spike page and its run log were retired (they remain in git history).
+8. **Install flow (Req 10):** a guided "Add to Home Screen" screen for iPhone, a one-tap "Turn on rest alerts" step in the installed app, help when notifications are blocked or iOS is too old, a test-alert button, and real app icons.
 
 See `git log` for the full detail, and `PRD.md` Section 17 for the spec change log.

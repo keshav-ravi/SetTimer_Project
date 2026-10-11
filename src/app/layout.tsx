@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   // iOS ignores most of the manifest; these let it install as a standalone app.
   icons: { apple: "/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "SetTimer" },
+};
+
+// viewportFit "cover" lets the page use the whole screen on iPhone, so the
+// pinned Log set bar can sit above the home indicator using safe-area padding.
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: "#0a0a0a",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
