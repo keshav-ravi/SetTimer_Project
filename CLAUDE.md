@@ -6,7 +6,7 @@ SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) 
 
 ## Scope rules (read first)
 
-- The timer spike is complete and passed for iPhone (see "Current phase"). Build **P0 only** unless I explicitly say otherwise. P1 and P2 items in `PRD.md` are off limits until I approve them.
+- The timer spike passed for iPhone and **P0 is complete**: the MVP is built and deployed (see "Current phase"). P1 and P2 items in `PRD.md` are off limits until I approve specific ones. The next planned item is P1 Req 7 (adjustable rest duration), once I approve it.
 - If a request is not in `PRD.md`, ask before building it.
 - Do not add dependencies without telling me why.
 - Non-goals: workout recommendations, calorie tracking, social features, native apps, auto-looping timers.
@@ -30,21 +30,15 @@ SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) 
 - Lint: `npm run lint`
 - Test: `npm test`
 
-## Current phase: P0 build
+## Current phase: MVP built; iterating
 
-The timer spike (`PRD.md` Section 12) passed for iPhone as an installed PWA with a server-scheduled push. Android is untested and is not a P0 gate. P0 is built as vertical slices, in the order agreed in the plan:
+The timer spike (`PRD.md` Section 12) passed for iPhone as an installed PWA with a server-scheduled push, and every P0 requirement is built, deployed and tested: username and password sign-in, exercise picker and set logging (with Row Level Security), the rest timer with the locked-screen push, the install-to-home-screen flow, the date control and History, and delete account with a privacy note. Android is untested and deferred.
 
-0. Housekeeping (Tailwind, `.gitignore`, this file)
-1. Username and password sign-in (Supabase Auth) and PostHog
-2. Choose an exercise and log a set (with Row Level Security)
-3. The rest timer inside the real flow, including the server-scheduled push
-4. Install-to-home-screen flow and notification setup (Req 10)
-5. History by date
-6. Delete account and privacy note
+`PRD.md` Section 18 is the source of truth for what is done, the known gaps (including the tabled security items: sign-up behind a server action, a per-user limit on scheduling alerts, a strict script policy) and the backlog. Check it before proposing work.
 
-Build one slice at a time. Propose the slice's files and approach, wait for my approval, then build, run lint, tests and build, and summarize in plain English.
+Iterating: work in small vertical slices, one approved item at a time. Propose the files and approach, wait for my approval, then build, run lint, tests and build, and summarize in plain English. Update `PRD.md` (requirement, Section 18 and the change log) whenever behavior changes.
 
-What carries over from the spike: `src/lib/timer/` (pure rules and tests), `src/lib/push/` and `src/app/api/{schedule,cancel,send}` (server-scheduled push through Upstash QStash and Web Push), `src/lib/alerts.ts`, `src/lib/wakeLock.ts`, and `public/sw.js`. The spike-only UI (`TimerSpike.tsx`, `runLog.ts`, `spikeStorage.ts`) was retired in slice 3; it remains in git history.
+The spike's reusable pieces now live in the app: `src/lib/timer/` (pure rules and tests), `src/lib/push/` and `src/app/api/{schedule,cancel,send}` (server-scheduled push through Upstash QStash and Web Push), `src/lib/alerts.ts`, `src/lib/wakeLock.ts`, and `public/sw.js`. The spike-only UI (`TimerSpike.tsx`, `runLog.ts`, `spikeStorage.ts`) was retired in slice 3; it remains in git history.
 
 Why a server push: iOS freezes a web app's JavaScript when the phone is locked or another app is open, so an in-page timer cannot alert on time. On iPhone, push only works in the installed home-screen app, which is why the install flow is P0.
 

@@ -1,7 +1,9 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** Draft v14 | **Last updated:** Oct 6, 2026
+**Author:** [Your name] | **Status:** v15, P0 MVP built and deployed; iterating | **Last updated:** Oct 11, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
+
+**Where things stand:** The timer spike passed for iPhone, and every P0 requirement is built, deployed and covered by automated tests. The product is now an MVP that will be iterated on. See Section 18 for what is done, what is known to be missing, and the backlog.
 
 ---
 
@@ -116,6 +118,8 @@ Implementation note: store the end timestamp, not a decrementing counter, so the
 
 ## 12. Timer Feasibility Spike (Week 1, gating)
 
+**Status: complete. Passed for iPhone (installed PWA with server-scheduled push) on Oct 6, 2026. Android untested.**
+
 **Why:** The product's wedge depends on the rest timer alerting reliably during a real workout, when the phone is often locked or another app is in the foreground. Web apps are throttled in the background, and iOS web push requires home-screen install (iOS 16.4+). This is the riskiest technical assumption in the PRD, so it is tested before any other feature is built.
 
 **Question:** Can a web-based 90-second timer reliably alert the user when the screen is locked or the app is backgrounded?
@@ -227,7 +231,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 | Risk | Mitigation |
 |---|---|
-| Timer unreliable when screen is locked or app is backgrounded | Timestamp-based timer, Wake Lock, PWA install, gating week-1 spike with explicit pass criteria and decision rules (Section 12). Spike showed the in-page alert fails on locked iPhone; server-scheduled Web Push is under test. |
+| Timer unreliable when screen is locked or app is backgrounded | Timestamp-based timer, Wake Lock, PWA install, gating week-1 spike with explicit pass criteria and decision rules (Section 12). Spike showed the in-page alert fails on locked iPhone; server-scheduled Web Push fixed it (10 of 10 locked-screen runs within 3 seconds). |
 | iPhone users who skip the home-screen install get no alerts | P0 install flow (Req 10): prompt after sign-in, clear steps, and a visible warning when notifications are off |
 | Server-sent push adds infrastructure and a third-party service (Upstash QStash) | Keep it minimal and stateless; no user data stored; verify request signatures; accept only known push-service hosts |
 | Privacy of workout and account data | RLS, minimal data, delete-account, privacy note |
@@ -235,16 +239,19 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 | Weak differentiation vs. Hevy/Strong | Measure wedge metrics; write direct comparison in learnings doc |
 | Fixed 90s does not fit all lifts | Ship P1 duration control early; monitor dismiss/reset rates |
 | Users forget to log, so timer never starts | Track sets logged vs. timer starts per session |
-| Scope creep at 5 hrs/week | P0 only until live |
+| Scope creep at 5 hrs/week | P0 only until live. P0 is now live, so each P1/P2 item needs explicit approval before it is built. |
+| Anyone can create accounts directly against the auth service, bypassing the app's username rules and rate limits (security review finding, tabled) | Move sign-up behind a server action with rate limiting; confirm Supabase rate limits are on. Fine for friends-and-family testing; revisit before wider launch. |
+| No password recovery, so a forgotten password loses the account | Stated in the sign-up screen and privacy note; add a recovery option (for example a recovery code) when users ask for it |
+| No limit on how many rest alerts one user can schedule, so one account could use up the free push quota | Add a per-user limit; low risk with a small invited group |
 
 ## 15. Launch and Learning Plan
 
 | When | Activity |
 |---|---|
-| Week 1 | **Timer feasibility spike** (Section 12) on real iPhone and Android devices; decision logged before any other build work |
+| Week 1 | **Timer feasibility spike** (Section 12) on real iPhone and Android devices; decision logged before any other build work. **Done for iPhone (passed); Android deferred.** |
 | Weeks 1-2 | 5 user interviews with gym-going friends (in parallel with spike) |
-| Weeks 2-6 | Build P0 in vertical slices, starting from the spike's timer logic if it passed; commit after each working slice |
-| Week 6 | Launch to 10-15 gym users (friends, campus gym, club groups) |
+| Weeks 2-6 | Build P0 in vertical slices, starting from the spike's timer logic if it passed; commit after each working slice. **Done (Oct 11, 2026): all P0 requirements built, deployed and tested.** |
+| Week 6 | Launch to 10-15 gym users (friends, campus gym, club groups). **Next.** Before inviting people: an iPhone launch pass and the dashboard checks in Section 18. The tabled security items can follow. |
 | Weeks 7-10 | Observe usage; ship P1 duration control; interview 5 users |
 | Week 10 | Decision checkpoint |
 
@@ -259,10 +266,13 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 - Does the log-triggered timer reduce app-switching, or do users still open the Clock app out of habit?
 - Is locked-screen alarm reliability on iOS good enough to ship as P0? **Answered (Oct 6, 2026): yes, but only as an installed PWA with server-scheduled push.** The in-page alert alone fails when the phone is locked or another app is open. With the push, 10 of 10 locked-screen runs arrived within 3 seconds (0.7 to 2.2s), and the Safari tab does not work. Android is untested.
 - If server-sent push is required, is the added infrastructure acceptable for P0, and is QStash the right long-term scheduler?
-- Should the exercise preset list be organized by muscle group or alphabetical?
+- ~~Should the exercise preset list be organized by muscle group or alphabetical?~~ **Answered (v15):** alphabetical in P0, with a plain dropdown; search is P1 (Req 13). Revisit if users find the list hard to scan.
+- Is the invite-only audience small enough that open sign-up (Section 18, tabled) is acceptable, or should it be closed before the first users arrive?
+- Is iPhone-first enough for launch, or are there Android users who need the app early? (Android is untested.)
 
 ## 17. Change Log
 
+- **v15:** Status update. The timer spike passed for iPhone and all P0 requirements are built, deployed and tested; the product is now an MVP that will be iterated on. Added Section 18 (build status, quality and security notes, known gaps and backlog); marked the spike section complete; updated the launch plan, risks and open questions (exercise list order answered; open sign-up and Android launch scope added). No requirements changed.
 - **v14:** Owner decisions for P0 slice 6 (delete account and privacy note): deleting an account requires re-entering the password; PostHog data is disclosed in the privacy note rather than deleted automatically; the privacy note shows no contact line for now (deletion is self-service in the app); the Account link sits next to Sign out.
 - **v13:** Owner decisions for P0 slice 5 (date and history, Req 2 and 6): the rest timer starts only for today's sets (an exception to 5a), future dates are blocked, the logging screen gets a date control and there is a History page listing the latest 30 workouts with Show more. Past dates can be logged to and the last set deleted.
 - **v12:** Owner decisions for P0 slice 4 (install flow, Req 10): auto-open the install guide once after sign-in on iPhone Safari; add a "Send test alert" button so users can verify alerts before relying on them; start with an initial app icon and iterate later. Android install prompts stay out of scope (Android is deferred).
@@ -277,3 +287,45 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 - **v3:** Added Section 12 (Timer Feasibility Spike) with test matrix, pass criteria, time-box, and decision rules. Updated launch plan, risks, and open questions. Renumbered later sections.
 - **v2:** Timer fixed at 90s for P0; adjustable duration moved to P1. Timer starts only on set log and never auto-restarts. Added non-goal against auto-looping timers. Accounts moved to P0 (required for persistence). Non-goal reworded to allow history-based next-weight suggestion (P2).
 - **v1:** Initial draft.
+
+## 18. Build Status and Backlog (as of Oct 11, 2026)
+
+### P0 status
+
+| Req | What | Status |
+|---|---|---|
+| 1 | Auth: username and password | Done. No email; no password recovery (known limitation). |
+| 2 | Calendar: select the workout date | Done. Previous/next day buttons and the native picker; no future dates. |
+| 3 | Exercise selection | Done. 34 preset exercises, alphabetical dropdown. |
+| 4 | Set logging (reps, weight in lb) | Done. |
+| 5a-5e | Rest timer: start, alert, idle, reset, stop | Done. Starts only for today's sets. |
+| 5f | Alert reaches a locked phone | Done. Server-scheduled push; verified on iPhone. |
+| 6 | History by date | Done. Latest 30 workouts with Show more. |
+| 9a | Delete the last set | Done. |
+| 10 | Install-to-home-screen flow | Done for iPhone: guided install, one-tap alerts setup, test alert, blocked and old-iOS help, real icons. |
+| (Sec 13) | Delete account and privacy note | Done. Password re-check; privacy note has no contact line for now. |
+| (CLAUDE.md) | Analytics events | All seven are sent (user id only). Please confirm they appear in PostHog. |
+
+### Quality and security
+- Automated tests cover every timer rule, the date, set, history, install and account logic, and the push request and signature checks.
+- Row Level Security passed a 25-check attack test (cross-user reads, edits, deletes, ownership spoofing, admin API).
+- A security review was done and the quick fixes shipped (HttpOnly cookies, security headers, PostHog privacy, pinned callback address). No secret appears in the browser code or in any commit.
+
+### Known gaps and tabled work
+- **Sign-up bypass (security review finding 1):** account creation goes straight to the auth service. Move it behind a server action with our own rules and rate limiting. Tabled; not critical for a small invited group.
+- **No per-user limit on scheduling rest alerts** (finding 2). Tabled.
+- **No strict script policy (CSP `script-src`)** yet. Needs careful testing with Next.js and PostHog.
+- **Dashboard settings to confirm (owner):** Supabase password minimum 8 and auth rate limits; PostHog session replay off and client IP discarded.
+- **Android:** untested and deferred. Android has no install prompt in the app yet.
+- **iPhone edge cases not yet retested:** a force-quit app left closed past the end time, Low Power Mode, back-to-back sets, a long idle period, and reload mid-run followed by Stop (fixed in code; not re-verified on a phone).
+- **Spike matrix:** Safari tab on iPhone is unsupported by design (alerts need the installed app).
+- **Analytics data:** PostHog events are not deleted when an account is deleted (disclosed in the privacy note).
+- **Icon:** an initial design; iterate later.
+
+### Backlog (each item needs explicit approval before it is built)
+- **P1:** Req 7 adjustable rest duration (the next planned item; the timer already keeps the duration in one constant); Req 8 custom exercises; Req 9 edit and delete any logged set and edit values; Req 13 exercise search.
+- **P2:** Req 11 prefill from the last session and a rule-based next-weight suggestion. P0 only copies the latest set from the same day.
+- **Candidates raised during the build (not yet in the PRD as requirements):** password recovery; Android install prompt and testing; account recovery code; open-sign-up hardening.
+
+### How it is checked
+Learning plan unchanged (Section 15): launch to 10-15 gym users, watch W4 retention and timer completion, and decide at week 10.

@@ -4,9 +4,9 @@ A mobile-first web app for gym-goers. Log a set, and a 90-second rest timer star
 
 The product spec is in [`PRD.md`](PRD.md) (source of truth). Working rules for contributors are in [`CLAUDE.md`](CLAUDE.md).
 
-## Current status: P0 build in progress (spike passed for iPhone)
+## Current status: P0 MVP built (spike passed for iPhone)
 
-The timer feasibility spike passed for iPhone (details below). P0 is being built in slices: sign-in (username and password through Supabase Auth), choosing an exercise and logging a set, the rest timer, and the install-to-home-screen flow are done. history by date, and a date control are done. delete account, and the privacy note are done. That completes P0. See `PRD.md` and the plan in `CLAUDE.md`.
+The timer feasibility spike passed for iPhone (details below), and every P0 requirement is built, deployed and tested: sign-in with a username and password, choosing an exercise and logging a set, the rest timer with a locked-screen alert, the install-to-home-screen flow, a date control and History, and delete account with a privacy note. The product is an MVP that will be iterated on. `PRD.md` Section 18 lists what is done, the known gaps and the backlog; contributor rules are in `CLAUDE.md`.
 
 ## The timer feasibility spike
 
