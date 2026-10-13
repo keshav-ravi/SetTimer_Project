@@ -5,6 +5,7 @@
 // it with Cancel or Escape. Save is only offered when something really
 // changed, and Delete asks "are you sure?" inside the panel.
 import { useState } from "react";
+import ExercisePicker from "@/components/ExercisePicker";
 import Stepper from "@/components/Stepper";
 import {
   canSave,
@@ -73,23 +74,12 @@ export default function SetEditor({
           </p>
         </div>
 
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Exercise
-          <select
-            value={draft.exerciseId}
-            onChange={(event) =>
-              setDraft({ ...draft, exerciseId: event.target.value })
-            }
-            disabled={busy}
-            className="h-14 rounded-lg border border-black/20 bg-transparent px-3 text-lg dark:border-white/30"
-          >
-            {exercises.map((exercise) => (
-              <option key={exercise.id} value={exercise.id}>
-                {exercise.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ExercisePicker
+          exercises={exercises}
+          selectedId={draft.exerciseId}
+          onSelect={(exerciseId) => setDraft({ ...draft, exerciseId })}
+          disabled={busy}
+        />
 
         <Stepper
           label="Weight"

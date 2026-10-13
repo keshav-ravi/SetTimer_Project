@@ -1,6 +1,6 @@
 # PRD: SetTimer (working name)
 
-**Author:** [Your name] | **Status:** v17, P0 MVP built and deployed; iterating | **Last updated:** Oct 11, 2026
+**Author:** [Your name] | **Status:** v18, P0 MVP built and deployed; iterating | **Last updated:** Oct 11, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 **Where things stand:** The timer spike passed for iPhone, and every P0 requirement is built, deployed and covered by automated tests. The product is now an MVP that will be iterated on. See Section 18 for what is done, what is known to be missing, and the backlog.
@@ -83,7 +83,7 @@ Supporting signals: sets logged per session; timer dismiss rate; timer reset rat
 7. **Adjustable rest duration:** User-selected value, persisted per user, applied to the next timer start. **Done (v16).** A "Rest: 1:30" button in the timer bar opens a panel with presets (1:00, 1:30, 2:00, 2:30, 3:00) and -/+ 15 second buttons, from 15 seconds to 10 minutes. It is saved to the user's account (with a copy on the device, so it works offline) and applies from the next start or reset; a running timer is never changed. Default 90 seconds.
 8. **Custom exercises:** Add a new exercise type.
 9. **Edit/delete logged sets** (any set, and editing values). The delete-last-set part is P0 (Req 9a). **Done (v17).** Tapping a set row opens an Edit set panel: change the exercise, weight or reps, or delete the set (confirmed inside the panel). Save is only offered when something changed, set numbering stays stable (by time logged), it works on any day, and it never touches the rest timer. Deleting a day's last set also removes the empty workout from History.
-13. **Exercise search:** a search box in the exercise picker. P0 uses a plain dropdown of the preset list. *(Added v11.)*
+13. **Exercise search:** a search box in the exercise picker. P0 uses a plain dropdown of the preset list. *(Added v11.)* **Done (v18).** The Exercise field is a button that opens a full-screen "Choose exercise" panel with a search box that is ready to type in. Matching ignores capitals, accents and punctuation ("chin up" and "chinup" find Chin-Up), every typed word must match, and names that start with the search come first. Enter picks the best match. The same picker is used on the logging screen and in the Edit set panel; Escape closes only the top panel.
 
 ### P2
 
@@ -272,6 +272,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 ## 17. Change Log
 
+- **v18:** P1 Req 13 (exercise search) built and verified; P1 Req 8 (custom exercises) is next. Owner decisions for both: Req 13: the exercise dropdown becomes a button that opens a full-screen search panel (matching ignores capitals and punctuation, all words must match, names that start with the search come first); the same picker is used on the logging screen and in the Edit set panel; Escape closes only the top panel. Also shipped with it: the idle timer clock no longer redraws the screen when no timer is running (measured: 12 redraws in 3 seconds when idle before, 0 after; a running timer still redraws about 4 times a second so the countdown stays smooth). Req 8 (to build): users can add their own exercises from the picker (private to them, 1-40 characters, no duplicates of presets or their own, at most 50), and rename them (typo fixes); delete is not included. `exercise_created` will be tracked without the name. No database changes in Req 13.
 - **v17:** P1 Req 9 (edit and delete any logged set) built and verified. Owner decisions: tapping a set row opens an Edit set panel where the exercise, weight and reps can be changed or the set deleted; Save stays disabled until something changes; delete is confirmed inline; the one-tap Delete last set button stays as the fastest undo; edits and deletes never touch the rest timer; two new events, `set_edited` and `set_deleted`, are tracked (user id only, no values). No database changes: the existing Row Level Security already allowed users to update and delete only their own sets. Sections 8, 18 and the backlog updated.
 - **v16:** P1 Req 7 (adjustable rest duration) built and verified. Owner decisions: the control lives in the timer bar on the logging screen; presets are 1:00, 1:30, 2:00, 2:30 and 3:00 plus a +/- 15 second control (range 15 seconds to 10 minutes); the value is saved per user in the database (new `user_settings` table with Row Level Security, plus a copy on the device so it works offline); a running timer is never changed, the new length applies to the next start or reset; `timer_started` and `timer_reset` events carry a `rest_seconds` number. 90 seconds remains the default. The push scheduling window grew from 10 to 15 minutes so a 10-minute rest is never rejected over a small clock difference. Section 5, 11, 16 and 18 updated.
 - **v15:** Status update. The timer spike passed for iPhone and all P0 requirements are built, deployed and tested; the product is now an MVP that will be iterated on. Added Section 18 (build status, quality and security notes, known gaps and backlog); marked the spike section complete; updated the launch plan, risks and open questions (exercise list order answered; open sign-up and Android launch scope added). No requirements changed.
@@ -307,6 +308,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 | 10 | Install-to-home-screen flow | Done for iPhone: guided install, one-tap alerts setup, test alert, blocked and old-iOS help, real icons. |
 | 7 (P1) | Adjustable rest duration | Done (v16). Saved per user; applies to the next start or reset. |
 | 9 (P1) | Edit and delete any logged set | Done (v17). Exercise, weight and reps can be edited; any set can be deleted. |
+| 13 (P1) | Exercise search | Done (v18). Search panel on the logging screen and in the Edit set panel. |
 | (Sec 13) | Delete account and privacy note | Done. Password re-check; privacy note has no contact line for now. |
 | (CLAUDE.md) | Analytics events | All seven are sent (user id only). Please confirm they appear in PostHog. |
 
@@ -327,7 +329,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 - **Icon:** an initial design; iterate later.
 
 ### Backlog (each item needs explicit approval before it is built)
-- **P1:** Req 8 custom exercises; Req 13 exercise search.
+- **P1:** Req 8 custom exercises (next; it adds an "add your own" step inside the new picker).
 - **P2:** Req 11 prefill from the last session and a rule-based next-weight suggestion. P0 only copies the latest set from the same day.
 - **Candidates raised during the build (not yet in the PRD as requirements):** password recovery; Android install prompt and testing; account recovery code; open-sign-up hardening.
 

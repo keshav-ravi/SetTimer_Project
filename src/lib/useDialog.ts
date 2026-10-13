@@ -11,6 +11,10 @@
 // exercise dropdown and the keyboard as soon as they open. So the effect below
 // runs only once, and reads the latest `onClose` through a ref.
 import { useEffect, useRef } from "react";
+import { createDialogStack } from "./dialogStack";
+
+// Shared by every panel: Escape only closes the one on top.
+const dialogStack = createDialogStack();
 
 export function useDialog<T extends HTMLElement>(
   onClose: () => void,
@@ -31,13 +35,23 @@ export function useDialog<T extends HTMLElement>(
     // Focus the panel itself (not a button), so screen readers announce its
     // title and no button looks "selected". Tapping inside moves focus freely.
     dialogRef.current?.focus();
+    const id = Symbol("dialog");
+    dialogStack.open(id);
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !closeDisabledRef.current) {
+      // Only the top panel reacts, so Escape never closes two at once.
+      if (
+        event.key === "Escape" &&
+        dialogStack.isTop(id) &&
+        !closeDisabledRef.current
+      ) {
         onCloseRef.current();
       }
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      dialogStack.close(id);
+    };
   }, []);
 
   return dialogRef;

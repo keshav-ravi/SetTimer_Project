@@ -6,7 +6,7 @@ SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) 
 
 ## Scope rules (read first)
 
-- The timer spike passed for iPhone and **P0 is complete**: the MVP is built and deployed (see "Current phase"). P1 and P2 items in `PRD.md` are off limits until I approve specific ones. P1 Req 7 (adjustable rest duration) is done; we choose the next backlog item together (see `PRD.md` Section 18).
+- The timer spike passed for iPhone and **P0 is complete**: the MVP is built and deployed (see "Current phase"). P1 and P2 items in `PRD.md` are off limits until I approve specific ones. P1 Reqs 7 (adjustable rest duration), 9 (edit and delete any set) and 13 (exercise search) are done; Req 8 (custom exercises) is next (see `PRD.md` Section 18).
 - If a request is not in `PRD.md`, ask before building it.
 - Do not add dependencies without telling me why.
 - Non-goals: workout recommendations, calorie tracking, social features, native apps, auto-looping timers.
@@ -81,7 +81,7 @@ Track these from the start: `sign_up`, `workout_started`, `set_logged`, `timer_s
 - Small components, one responsibility each.
 - Mobile-first layouts; primary actions reachable with one thumb; tap targets at least 44px.
 - Prefer simple, readable code over clever code. I read Python and am less familiar with TypeScript, so add brief comments on non-obvious logic.
-- Panels that sit on top of the app (Edit set, Rest length, Install guide) use the shared `useDialog` hook: focus moves in once, and Escape closes. Never put "move focus" code in an effect that re-runs on every redraw (the screen redraws several times a second), because it steals focus and closes the phone's dropdown and keyboard. Check focus with real focus events on a phone-size browser, not only by setting values from code.
+- Panels that sit on top of the app (Edit set, Rest length, Install guide, Choose exercise) use the shared `useDialog` hook: focus moves in once, and Escape closes only the top panel. Never put "move focus" code in an effect that re-runs on every redraw (the screen redraws several times a second), because it steals focus and closes the phone's dropdown and keyboard. Check focus with real focus events on a phone-size browser, not only by setting values from code.
 - Logging a set should take under 5 seconds: preselect the last-used exercise and sensible input defaults where it does not conflict with P0 scope.
 
 ## Definition of done (per slice)

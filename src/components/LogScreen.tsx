@@ -4,6 +4,7 @@
 // "Log set". The date control chooses which day the sets belong to.
 import { useCallback, useEffect, useRef, useState } from "react";
 import DatePicker from "@/components/DatePicker";
+import ExercisePicker from "@/components/ExercisePicker";
 import DaySets from "@/components/DaySets";
 import RestLengthPicker from "@/components/RestLengthPicker";
 import RestTimer from "@/components/RestTimer";
@@ -330,20 +331,11 @@ export default function LogScreen({
       <div className="flex flex-col gap-5">
         <DatePicker date={date} today={today} onChange={handleDateChange} />
 
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Exercise
-          <select
-            value={exerciseId}
-            onChange={(event) => handleExerciseChange(event.target.value)}
-            className="h-14 rounded-lg border border-black/20 bg-transparent px-3 text-lg dark:border-white/30"
-          >
-            {exercises.map((exercise) => (
-              <option key={exercise.id} value={exercise.id}>
-                {exercise.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ExercisePicker
+          exercises={exercises}
+          selectedId={exerciseId}
+          onSelect={handleExerciseChange}
+        />
 
         <Stepper
           label="Weight"

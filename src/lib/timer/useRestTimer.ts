@@ -111,8 +111,11 @@ export function useRestTimer() {
   // holds the "end time reached" rule: alert once, go idle, do nothing else.
   const check = useCallback(() => {
     const t = Date.now();
-    setNow(t);
     const before = timerRef.current;
+    // Only save the time (which redraws the screen) while a timer is running:
+    // that is what moves the countdown. When idle nothing on screen depends on
+    // it, so skipping it avoids four pointless redraws a second.
+    if (before.status === "running") setNow(t);
     const result = tick(before, t);
     if (!result.expired || before.status !== "running") return;
 
