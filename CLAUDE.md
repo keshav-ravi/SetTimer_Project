@@ -2,7 +2,9 @@
 
 ## Product summary
 
-SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) per exercise on a chosen date. Logging a set starts a 90-second rest timer that alerts at zero and then goes idle. It never restarts on its own. Full spec: `PRD.md` (source of truth).
+The app is named **Rep Rest** (renamed from SetTimer on Oct 13, 2026). The code base, repo, package name, storage keys, cache names and the `users.settimer.app` sign-in domain intentionally keep the original "settimer" wording; only user-visible text and docs say Rep Rest. Do not rename the code identifiers (it would lock out existing accounts and wipe saved state).
+
+Rep Rest (SetTimer in code) is a mobile-first web app for gym-goers. Users log sets (reps, weight) per exercise on a chosen date. Logging a set starts a 90-second rest timer that alerts at zero and then goes idle. It never restarts on its own. Full spec: `PRD.md` (source of truth).
 
 ## Scope rules (read first)
 

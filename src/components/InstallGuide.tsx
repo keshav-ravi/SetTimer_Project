@@ -56,7 +56,7 @@ function Step({
 }) {
   return (
     <li className="flex items-start gap-3 rounded-xl bg-black/5 p-4 dark:bg-white/10">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-sm font-bold text-background">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-on-accent">
         {number}
       </span>
       <div className="flex-1 text-base">{children}</div>
@@ -81,11 +81,11 @@ export default function InstallGuide({ onClose }: { onClose: () => void }) {
       <div className="mx-auto flex max-w-sm flex-col gap-5">
         <div>
           <h2 id="install-title" className="text-2xl font-bold">
-            Install SetTimer
+            Install Rep Rest
           </h2>
           <p className="mt-2 text-base opacity-80">
             On iPhone, rest alerts only reach you with your phone locked when
-            SetTimer is on your Home Screen. It takes about 20 seconds.
+            Rep Rest is on your Home Screen. It takes about 20 seconds.
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export default function InstallGuide({ onClose }: { onClose: () => void }) {
             <strong>Add</strong>.
           </Step>
           <Step number={3} icon={null}>
-            Open <strong>SetTimer</strong> from your Home Screen. You will sign
+            Open <strong>Rep Rest</strong> from your Home Screen. You will sign
             in once more there, because the app keeps its own login.
           </Step>
         </ol>
@@ -109,7 +109,7 @@ export default function InstallGuide({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="h-14 rounded-xl bg-foreground text-lg font-bold text-background"
+            className="h-14 rounded-xl bg-accent text-lg font-bold text-on-accent"
           >
             Got it
           </button>

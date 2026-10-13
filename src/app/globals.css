@@ -1,21 +1,23 @@
 @import "tailwindcss";
 
-/* Lets us write bg-background, text-foreground, etc. */
+/* Lets us write bg-background, text-foreground, bg-accent, etc. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
 }
+
+/* Rep Rest is dark ("Midnight and lime") on every phone, so the dark:
+   variants always apply instead of following the phone's light/dark setting. */
+@custom-variant dark (&);
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #14171c;
+  --foreground: #f2f4f7;
+  --accent: #c6f135; /* lime: primary buttons and the running timer */
+  --on-accent: #14171c; /* text that sits on lime */
+  color-scheme: dark;
 }
 
 html,
@@ -31,8 +33,3 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}

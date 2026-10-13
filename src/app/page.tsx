@@ -21,7 +21,7 @@ export default async function Home(props: PageProps<"/">) {
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col gap-5 p-4">
       <header className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold">SetTimer</h1>
+          <h1 className="text-2xl font-bold">Rep Rest</h1>
           <p className="text-sm opacity-70">Signed in as {username}</p>
         </div>
         <Link

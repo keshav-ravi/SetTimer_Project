@@ -11,7 +11,7 @@ import { useAlertsSetup } from "@/lib/install/useAlertsSetup";
 const card =
   "rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm";
 const cardButton =
-  "h-12 w-full rounded-lg bg-foreground text-base font-semibold text-background";
+  "h-12 w-full rounded-lg bg-accent text-base font-semibold text-on-accent";
 
 export default function SetupFlow() {
   const { step, enableAlerts, sendTestAlert } = useAlertsSetup();
@@ -47,7 +47,7 @@ export default function SetupFlow() {
       {step === "install" && (
         <div className={card}>
           <p className="mb-2">
-            Add SetTimer to your Home Screen to get rest alerts when your phone
+            Add Rep Rest to your Home Screen to get rest alerts when your phone
             is locked.
           </p>
           <button
@@ -77,7 +77,7 @@ export default function SetupFlow() {
           Notifications are blocked, so you will only get alerts with the app
           open. To turn them on: open your phone&apos;s{" "}
           <strong>Settings</strong>, then <strong>Notifications</strong>, then{" "}
-          <strong>SetTimer</strong>, and allow notifications. Then come back
+          <strong>Rep Rest</strong>, and allow notifications. Then come back
           here.
         </p>
       )}

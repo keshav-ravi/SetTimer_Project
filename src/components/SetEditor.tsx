@@ -118,7 +118,7 @@ export default function SetEditor({
               type="button"
               onClick={() => onSave(draft)}
               disabled={!changed || busy}
-              className="h-14 rounded-xl bg-foreground text-lg font-bold text-background disabled:opacity-40"
+              className="h-14 rounded-xl bg-accent text-lg font-bold text-on-accent disabled:opacity-40"
             >
               {busy ? "Saving..." : "Save"}
             </button>

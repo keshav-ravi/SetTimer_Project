@@ -34,7 +34,7 @@ export default function RestTimer({
             </p>
             {/* tabular-nums keeps the digits the same width so the text doesn't jiggle */}
             <p
-              className="text-4xl font-bold tabular-nums"
+              className="text-4xl font-bold tabular-nums text-accent"
               aria-label={`${formatRemaining(remainingMs)} remaining`}
             >
               {formatRemaining(remainingMs)}

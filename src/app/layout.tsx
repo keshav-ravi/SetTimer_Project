@@ -15,19 +15,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SetTimer",
+  title: "Rep Rest",
   description: "Log your sets. The rest timer starts itself.",
   manifest: "/manifest.webmanifest",
   // iOS ignores most of the manifest; these let it install as a standalone app.
   icons: { apple: "/apple-touch-icon.png" },
-  appleWebApp: { capable: true, title: "SetTimer" },
+  appleWebApp: { capable: true, title: "Rep Rest" },
 };
 
 // viewportFit "cover" lets the page use the whole screen on iPhone, so the
 // pinned Log set bar can sit above the home indicator using safe-area padding.
 export const viewport: Viewport = {
   viewportFit: "cover",
-  themeColor: "#0a0a0a",
+  themeColor: "#14171c",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,6 +1,6 @@
-# PRD: SetTimer (working name)
+# PRD: Rep Rest (formerly SetTimer)
 
-**Author:** [Your name] | **Status:** v18, P0 MVP built and deployed; iterating | **Last updated:** Oct 11, 2026
+**Author:** [Your name] | **Status:** v19, P0 MVP built and deployed; iterating | **Last updated:** Oct 13, 2026
 **Target:** MVP live in ~6 weeks at 5 hrs/week | **Platform:** Mobile-first web app (PWA)
 
 **Where things stand:** The timer spike passed for iPhone, and every P0 requirement is built, deployed and covered by automated tests. The product is now an MVP that will be iterated on. See Section 18 for what is done, what is known to be missing, and the backlog.
@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-SetTimer is a mobile-first web app for gym-goers that combines workout logging and rest timing in one flow. Logging a set immediately starts a 90-second rest timer. When the timer ends it alerts the user and goes idle. It starts again only when the next set is logged. Users never need to leave the app mid-workout.
+Rep Rest is a mobile-first web app for gym-goers that combines workout logging and rest timing in one flow. Logging a set immediately starts a 90-second rest timer. When the timer ends it alerts the user and goes idle. It starts again only when the next set is logged. Users never need to leave the app mid-workout.
 
 ## 2. Problem
 
@@ -272,6 +272,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 
 ## 17. Change Log
 
+- **v19:** Rebrand (owner decision, not a numbered requirement): the app is now **Rep Rest**, with the "Midnight and lime" look. Midnight background (#14171c), near-white text (#f2f4f7), lime accent (#c6f135) on primary buttons and the running countdown. The app is dark on every phone (it no longer follows the phone's light/dark setting). New dumbbell-and-lime-dot icon (home screen, maskable, Apple touch, favicon). Only user-visible text changed: internal identifiers such as the `users.settimer.app` sign-in domain, the `settimer-*` storage keys and cache names, and the `settimer.vercel.app` host are deliberately unchanged so existing accounts and saved state keep working. No behavior change.
 - **v18:** P1 Req 13 (exercise search) and P1 Req 8 (custom exercises) built and verified. Owner decisions for both: Req 13: the exercise dropdown becomes a button that opens a full-screen search panel (matching ignores capitals and punctuation, all words must match, names that start with the search come first); the same picker is used on the logging screen and in the Edit set panel; Escape closes only the top panel. Also shipped with it: the idle timer clock no longer redraws the screen when no timer is running (measured: 12 redraws in 3 seconds when idle before, 0 after; a running timer still redraws about 4 times a second so the countdown stays smooth). Req 8: users can add their own exercises from the picker (private to the user who adds them, so no other user ever sees them and nobody can pollute anybody else's list; the 34 built-in exercises stay the shared list, curated by the owner, who can also see what users add through the database, 1-40 characters, no duplicates of presets or their own, at most 50), and rename them (typo fixes); delete is not included. `exercise_created` is tracked without the name. Migration 0003 adds an owner column to `exercises`, replaces the global unique name with per-owner uniqueness, adds a trigger (no copying a preset's name, 50 per user), splits Row Level Security so users see presets plus their own, allows renaming only the name, and stops a set from using an exercise its owner cannot see. A security test with 25 new attack cases passes (67 of 67) and existing data was unchanged. Typing a name that already exists selects that exercise instead of failing. No database changes in Req 13.
 - **v17:** P1 Req 9 (edit and delete any logged set) built and verified. Owner decisions: tapping a set row opens an Edit set panel where the exercise, weight and reps can be changed or the set deleted; Save stays disabled until something changes; delete is confirmed inline; the one-tap Delete last set button stays as the fastest undo; edits and deletes never touch the rest timer; two new events, `set_edited` and `set_deleted`, are tracked (user id only, no values). No database changes: the existing Row Level Security already allowed users to update and delete only their own sets. Sections 8, 18 and the backlog updated.
 - **v16:** P1 Req 7 (adjustable rest duration) built and verified. Owner decisions: the control lives in the timer bar on the logging screen; presets are 1:00, 1:30, 2:00, 2:30 and 3:00 plus a +/- 15 second control (range 15 seconds to 10 minutes); the value is saved per user in the database (new `user_settings` table with Row Level Security, plus a copy on the device so it works offline); a running timer is never changed, the new length applies to the next start or reset; `timer_started` and `timer_reset` events carry a `rest_seconds` number. 90 seconds remains the default. The push scheduling window grew from 10 to 15 minutes so a 10-minute rest is never rejected over a small clock difference. Section 5, 11, 16 and 18 updated.
@@ -291,7 +292,7 @@ Record per run: alert fired (Y/N), delay vs. expected time (seconds), which chan
 - **v2:** Timer fixed at 90s for P0; adjustable duration moved to P1. Timer starts only on set log and never auto-restarts. Added non-goal against auto-looping timers. Accounts moved to P0 (required for persistence). Non-goal reworded to allow history-based next-weight suggestion (P2).
 - **v1:** Initial draft.
 
-## 18. Build Status and Backlog (as of Oct 11, 2026)
+## 18. Build Status and Backlog (as of Oct 13, 2026)
 
 ### P0 status
 

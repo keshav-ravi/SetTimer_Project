@@ -104,7 +104,7 @@ export default function ExerciseForm({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="h-14 rounded-xl bg-foreground text-lg font-bold text-background disabled:opacity-40"
+          className="h-14 rounded-xl bg-accent text-lg font-bold text-on-accent disabled:opacity-40"
         >
           {busy ? busyLabel : submitLabel}
         </button>

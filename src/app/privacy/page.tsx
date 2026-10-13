@@ -19,7 +19,7 @@ export default function PrivacyPage() {
       </header>
 
       <p className="text-base">
-        SetTimer keeps only what it needs to log your sets and time your rests.
+        Rep Rest keeps only what it needs to log your sets and time your rests.
         Here is exactly what that is.
       </p>
 

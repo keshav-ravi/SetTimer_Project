@@ -62,7 +62,7 @@ export default function RestLengthPicker({
                 onClick={() => onChange(preset)}
                 className={`h-14 rounded-lg text-lg font-semibold ${
                   selected
-                    ? "bg-foreground text-background"
+                    ? "bg-accent text-on-accent"
                     : "bg-black/5 dark:bg-white/10"
                 }`}
               >
@@ -111,7 +111,7 @@ export default function RestLengthPicker({
         <button
           type="button"
           onClick={onClose}
-          className="h-14 rounded-xl bg-foreground text-lg font-bold text-background"
+          className="h-14 rounded-xl bg-accent text-lg font-bold text-on-accent"
         >
           Done
         </button>

@@ -436,7 +436,7 @@ export default function LogScreen({
           type="button"
           onClick={handleLogSet}
           disabled={busy || !exerciseId}
-          className="mx-auto block h-16 w-full max-w-sm rounded-xl bg-foreground text-xl font-bold text-background disabled:opacity-60"
+          className="mx-auto block h-16 w-full max-w-sm rounded-xl bg-accent text-xl font-bold text-on-accent disabled:opacity-60"
         >
           {busy ? "Saving..." : "Log set"}
         </button>

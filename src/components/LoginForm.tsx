@@ -30,7 +30,7 @@ export default function LoginForm() {
       onClick={() => setMode(value)}
       className={`min-h-12 flex-1 rounded-lg text-base font-medium ${
         mode === value
-          ? "bg-foreground text-background"
+          ? "bg-accent text-on-accent"
           : "bg-black/5 dark:bg-white/10"
       }`}
     >
@@ -91,7 +91,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="min-h-12 rounded-lg bg-foreground text-base font-semibold text-background disabled:opacity-60"
+        className="min-h-12 rounded-lg bg-accent text-base font-semibold text-on-accent disabled:opacity-60"
       >
         {pending ? "Please wait..." : mode === "signUp" ? "Create account" : "Sign in"}
       </button>
