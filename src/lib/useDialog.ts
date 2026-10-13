@@ -38,6 +38,9 @@ export function useDialog<T extends HTMLElement>(
     const id = Symbol("dialog");
     dialogStack.open(id);
     const onKey = (event: KeyboardEvent) => {
+      // If something inside the panel already handled this Escape (for
+      // example a form going back to the list), leave it alone.
+      if (event.defaultPrevented) return;
       // Only the top panel reacts, so Escape never closes two at once.
       if (
         event.key === "Escape" &&

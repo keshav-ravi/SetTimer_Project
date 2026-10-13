@@ -6,7 +6,7 @@ SetTimer is a mobile-first web app for gym-goers. Users log sets (reps, weight) 
 
 ## Scope rules (read first)
 
-- The timer spike passed for iPhone and **P0 is complete**: the MVP is built and deployed (see "Current phase"). P1 and P2 items in `PRD.md` are off limits until I approve specific ones. P1 Reqs 7 (adjustable rest duration), 9 (edit and delete any set) and 13 (exercise search) are done; Req 8 (custom exercises) is next (see `PRD.md` Section 18).
+- The timer spike passed for iPhone and **P0 is complete**: the MVP is built and deployed (see "Current phase"). P1 and P2 items in `PRD.md` are off limits until I approve specific ones. All P1 requirements (7 adjustable rest duration, 8 custom exercises, 9 edit and delete any set, 13 exercise search) are done; we choose the next item together from the backlog (see `PRD.md` Section 18).
 - If a request is not in `PRD.md`, ask before building it.
 - Do not add dependencies without telling me why.
 - Non-goals: workout recommendations, calorie tracking, social features, native apps, auto-looping timers.
@@ -64,7 +64,7 @@ Why a server push: iOS freezes a web app's JavaScript when the phone is locked o
 
 ## Analytics events (PostHog)
 
-Track these from the start: `sign_up`, `workout_started`, `set_logged`, `timer_started`, `timer_completed`, `timer_dismissed`, `timer_reset`. Added later: `set_edited` and `set_deleted`. Do not send personal data in event properties beyond the user id.
+Track these from the start: `sign_up`, `workout_started`, `set_logged`, `timer_started`, `timer_completed`, `timer_dismissed`, `timer_reset`. Added later: `set_edited`, `set_deleted` and `exercise_created` (no exercise names are ever sent). Do not send personal data in event properties beyond the user id.
 
 ## Workflow
 

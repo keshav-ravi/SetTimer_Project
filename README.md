@@ -61,7 +61,8 @@ Key design rules (from `CLAUDE.md`):
 | `src/app/sets/actions.ts` | Server actions: load today, log a set, delete the last set |
 | `src/components/{LogScreen,RestTimer,DaySets,DatePicker,Stepper}.tsx` | The logging screen, the timer bar, the chosen day's sets, the date control and the shared -/+ box |
 | `src/components/SetEditor.tsx`, `src/lib/sets/edit.ts` + tests | The Edit set panel (Req 9) and its pure validation ("is this a valid change?") |
-| `src/components/ExercisePicker.tsx`, `src/lib/sets/exerciseSearch.ts` + tests | The search-as-you-type exercise picker (Req 13) and its pure matching rules |
+| `src/components/ExercisePicker.tsx`, `ExerciseForm.tsx`, `src/lib/sets/exerciseSearch.ts` + tests | The search-as-you-type exercise picker (Req 13), the add and rename form (Req 8), and the pure matching rules |
+| `src/app/exercises/actions.ts`, `src/lib/sets/exerciseName.ts`, `exerciseGroups.ts`, `exerciseErrors.ts` + tests | Add and rename custom exercises: server actions, name rules and duplicate detection, "My exercises" grouping, friendly database-error messages |
 | `src/lib/useDialog.ts`, `src/lib/dialogStack.ts` + tests | Shared panel behavior: focus once on open, and Escape closes only the top panel |
 | `src/app/history/page.tsx`, `src/components/HistoryList.tsx` | The History page: past workouts newest first, 30 at a time, tapping one opens that day |
 | `src/lib/install/*` + tests | Install flow logic: device detection (iPhone, installed or not) and which setup card to show; `useAlertsSetup` turns alerts on and sends a test alert |
@@ -74,7 +75,7 @@ Key design rules (from `CLAUDE.md`):
 | `src/app/privacy/page.tsx` | The plain-language privacy note (public) |
 | `src/lib/supabase/*`, `src/proxy.ts`, `src/app/login/*` | Supabase connections, the sign-in guard, and the login screen |
 | `src/lib/analytics.ts` | PostHog wrapper (user id only, no autocapture) |
-| `supabase/migrations/0001_init.sql`, `0002_user_settings.sql` | Tables and Row Level Security (run each once in the Supabase SQL editor) |
+| `supabase/migrations/0001_init.sql`, `0002_user_settings.sql`, `0003_custom_exercises.sql` | Tables and Row Level Security (run each once, in order, in the Supabase SQL editor) |
 | `src/app/api/keepalive/route.ts`, `vercel.json` | Daily ping so the free Supabase project does not pause |
 | `public/sw.js` | Service worker: shows push notifications, records arrival time |
 | `public/manifest.webmanifest`, `public/*.png` | PWA install files and the app icons (initial design; edit the script above to change it) |
@@ -162,5 +163,6 @@ Pass bar (PRD Section 12): alert within 3 seconds of the 90s mark in at least 9 
 11. **Adjustable rest length (Req 7):** a "Rest: 1:30" button in the timer bar opens presets (1:00 to 3:00) and ±15 second buttons, 15 seconds to 10 minutes, saved per user (`supabase/migrations/0002_user_settings.sql`) with a copy on the device. A running timer is never changed.
 12. **Edit and delete any set (Req 9):** tapping a set opens an Edit set panel (exercise, weight, reps, or delete with an inline confirmation); Save is only offered when something changed; the rest timer is never touched.
 13. **Exercise search (Req 13):** the exercise dropdown became a search panel (type to filter, Enter picks the best match), used on the logging screen and in the Edit set panel. The timer clock also stopped redrawing the screen while idle.
+14. **Custom exercises (Req 8):** users can add their own exercises from the picker (private to them, up to 50, 1 to 40 characters, no copies of built-in names) and rename them. A new owner column, per-owner name rules and tightened Row Level Security are in `0003_custom_exercises.sql`.
 
 See `git log` for the full detail, and `PRD.md` Section 17 for the spec change log.

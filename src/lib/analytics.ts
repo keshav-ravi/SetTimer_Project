@@ -11,6 +11,7 @@ export type AnalyticsEvent =
   | "set_logged"
   | "set_edited"
   | "set_deleted"
+  | "exercise_created"
   | "timer_started"
   | "timer_completed"
   | "timer_dismissed"

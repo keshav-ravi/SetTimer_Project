@@ -223,6 +223,20 @@ export default function LogScreen({
       .catch(syncFailed);
   }
 
+  // An exercise was added or renamed in the picker. Keep the list in step, and
+  // refresh the exercise names shown on today's sets (a rename changes them).
+  function handleExercisesChange(next: ExerciseOption[]) {
+    setExercises(next);
+    setSets((current) =>
+      current.map((set) => ({
+        ...set,
+        exerciseName:
+          next.find((exercise) => exercise.id === set.exerciseId)?.name ??
+          set.exerciseName,
+      })),
+    );
+  }
+
   function openEditor(set: SetRow, number: number) {
     setEditError(null);
     setEditing({ set, number });
@@ -335,6 +349,7 @@ export default function LogScreen({
           exercises={exercises}
           selectedId={exerciseId}
           onSelect={handleExerciseChange}
+          onExercisesChange={handleExercisesChange}
         />
 
         <Stepper
@@ -389,6 +404,7 @@ export default function LogScreen({
           set={editing.set}
           setNumber={editing.number}
           exercises={exercises}
+          onExercisesChange={handleExercisesChange}
           busy={editBusy}
           error={editError}
           onSave={handleSaveEdit}

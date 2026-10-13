@@ -28,6 +28,7 @@ export default function SetEditor({
   set,
   setNumber,
   exercises,
+  onExercisesChange,
   busy,
   error,
   onSave,
@@ -37,6 +38,7 @@ export default function SetEditor({
   set: SetRow;
   setNumber: number; // "Set 2" within its exercise
   exercises: ExerciseOption[];
+  onExercisesChange: (next: ExerciseOption[]) => void;
   busy: boolean;
   error: string | null;
   onSave: (draft: SetDraft) => void;
@@ -78,6 +80,7 @@ export default function SetEditor({
           exercises={exercises}
           selectedId={draft.exerciseId}
           onSelect={(exerciseId) => setDraft({ ...draft, exerciseId })}
+          onExercisesChange={onExercisesChange}
           disabled={busy}
         />
 

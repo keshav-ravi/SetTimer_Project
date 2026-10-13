@@ -6,7 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SetRow } from "./group";
 import { summarizeDay, type HistoryDay } from "./history";
 
-export type ExerciseOption = { id: string; name: string };
+// isCustom is true for an exercise the user added themselves (Req 8).
+export type ExerciseOption = { id: string; name: string; isCustom: boolean };
 
 // Shape of a row as the database returns it (snake_case, nested exercise).
 type DbSet = {
@@ -29,15 +30,64 @@ function toSetRow(row: DbSet): SetRow {
   };
 }
 
+type DbExercise = { id: string; name: string; user_id?: string | null };
+
+function toExerciseOption(row: DbExercise): ExerciseOption {
+  return { id: row.id, name: row.name, isCustom: row.user_id != null };
+}
+
+// The presets plus the signed-in user's own exercises, A to Z. (Row Level
+// Security decides which custom exercises a user can see: only their own.)
 export async function getExercises(
   supabase: SupabaseClient,
 ): Promise<ExerciseOption[]> {
   const { data, error } = await supabase
     .from("exercises")
+    .select("id, name, user_id")
+    .order("name");
+  if (!error) return ((data ?? []) as DbExercise[]).map(toExerciseOption);
+
+  // Compatibility: until migration 0003 has been run there is no user_id
+  // column, so fall back to the plain list (all presets). Safe to remove once
+  // 0003 is applied everywhere.
+  const fallback = await supabase
+    .from("exercises")
     .select("id, name")
     .order("name");
-  if (error) throw new Error("Could not load exercises.");
-  return (data ?? []) as ExerciseOption[];
+  if (fallback.error) throw new Error("Could not load exercises.");
+  return ((fallback.data ?? []) as DbExercise[]).map(toExerciseOption);
+}
+
+// Adds a custom exercise owned by `userId`. Throws the raw database error so
+// the caller can turn it into a friendly message (see exerciseErrors.ts).
+export async function insertCustomExercise(
+  supabase: SupabaseClient,
+  userId: string,
+  name: string,
+): Promise<ExerciseOption> {
+  const { data, error } = await supabase
+    .from("exercises")
+    .insert({ name, user_id: userId })
+    .select("id, name, user_id")
+    .single();
+  if (error) throw error;
+  return toExerciseOption(data as DbExercise);
+}
+
+// Renames an exercise. Only the owner's own custom exercises can match (Row
+// Level Security). Returns false if nothing was renamed.
+export async function updateExerciseName(
+  supabase: SupabaseClient,
+  exerciseId: string,
+  name: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("exercises")
+    .update({ name })
+    .eq("id", exerciseId)
+    .select("id");
+  if (error) throw error;
+  return (data ?? []).length > 0;
 }
 
 // The id of today's workout for this user, or null if none exists yet.

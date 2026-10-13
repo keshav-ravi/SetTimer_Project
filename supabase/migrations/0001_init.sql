@@ -97,4 +97,4 @@ insert into public.exercises (name) values
   ('Lunge'), ('Lying Triceps Extension'), ('Overhead Press'), ('Pull-Up'),
   ('Push-Up'), ('Romanian Deadlift'), ('Seated Cable Row'),
   ('Triceps Pushdown')
-on conflict (name) do nothing;
+on conflict do nothing;
